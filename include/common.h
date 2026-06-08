@@ -1,6 +1,15 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-/* Common definitions and headers */
+#include <stdint.h>
 
-#endif /* COMMON_H */
+// Watchdog
+void watchdog_init(void);
+void watchdog_kick(void);
+void watchdog_check(void);
+
+// Memory scrub
+void memory_scrub_init(void);
+void memory_scrub(void);
+
+#endif

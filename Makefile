@@ -9,7 +9,7 @@ CFLAGS = -march=rv64imac -mabi=lp64 -mcmodel=medany -O2 -Wall -Wextra -ffreestan
 ASFLAGS = -march=rv64imac -mabi=lp64
 
 # Sources - startup first for link order
-CSRC = src/main.c src/uart.c
+CSRC = src/main.c src/uart.c src/watchdog.c src/memory_scrub.c
 ASRC = src/startup.s
 OBJ = $(ASRC:.s=.o) $(CSRC:.c=.o)
 
