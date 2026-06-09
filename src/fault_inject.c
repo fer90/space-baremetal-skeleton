@@ -2,6 +2,7 @@
 #include "uart.h"
 #include "fault_inject.h"
 #include "memory_scrub.h"
+#include "timer.h"
 
 #define FAULT_PROBABILITY 20
 
@@ -18,7 +19,7 @@ void fault_inject_init(void) {
 }
 
 void inject_random_fault(volatile uint8_t *area) {
-    if ((system_ticks % FAULT_PROBABILITY) == 0) {
+    if ((get_system_ticks() % FAULT_PROBABILITY) == 0) {
         // Flipping random bit in the scrub area
         uint32_t r = simple_rand();
         int idx = r % SCRUB_SIZE;
