@@ -20,4 +20,8 @@ void memory_scrub(volatile uint8_t *area);
 void fault_inject_init(void);
 void inject_random_fault(volatile uint8_t *area);
 
+// Stack painting / monitoring
+void stack_paint_init(void);
+void stack_check(void);
+
 #endif

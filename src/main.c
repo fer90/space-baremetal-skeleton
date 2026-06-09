@@ -16,6 +16,7 @@ int main(void) {
     watchdog_init();
     memory_scrub_init(scrub_area);
     fault_inject_init();
+    stack_paint_init();
 
     while (1) {
         system_ticks++;
@@ -30,6 +31,9 @@ int main(void) {
         }
         if (system_ticks % 80000 == 0) {
             inject_random_fault(scrub_area);
+        }
+        if (system_ticks % 100000 == 0) {
+            stack_check();
         }
 
         watchdog_check();
