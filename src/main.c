@@ -17,34 +17,39 @@ int main(void) {
     uart_puts("\r\n=== Space Bare-Metal Skeleton Booted ===\r\n");
     uart_puts("Power, Dependability, Performance in action\r\n\r\n");
 
-    timer_init();
+    // interrupt_init() and timer_init() are now called from startup.s
+
     watchdog_init();
     memory_scrub_init(scrub_area);
     fault_inject_init();
     stack_paint_init();
 
+    uint32_t last_ticks = 0;
+
     while (1) {
-        timer_tick();
 
         //watchdog_kick();
 
-        if (get_system_ticks() % 600000 == 0) {     // Adjusted for visibility
-            heartbeat();
-        }
-        if (get_system_ticks() % 150000 == 0) {
-            memory_scrub(scrub_area);
-        }
-        if (get_system_ticks() % 80000 == 0) {
-            inject_random_fault(scrub_area);
-        }
-        if (get_system_ticks() % 100000 == 0) {
-            stack_check();
+        uint32_t ticks = get_system_ticks();
+
+        // Only run periodic tasks when ticks have advanced
+        if (ticks != last_ticks) {
+            last_ticks = ticks;
+
+            // Heartbeat every ~5s (500 ticks @ 10ms each)
+            if (ticks % 500 == 0) heartbeat();
+            // Memory scrub every ~2s
+            if (ticks % 200 == 0) memory_scrub(scrub_area);
+            // Fault injection every ~3s
+            if (ticks % 300 == 0) inject_random_fault(scrub_area);
+            // Stack check every ~4s
+            if (ticks % 400 == 0) stack_check();
         }
 
         watchdog_check();
 
-        // Small delay to prevent flooding QEMU console
-        for (volatile int i = 0; i < 200; i++) {}
+        // Low-power idle: wait for next interrupt
+        asm volatile("wfi");
     }
     return 0;
 }

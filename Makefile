@@ -5,11 +5,11 @@ AS = $(CROSS_COMPILE)as
 LD = $(CROSS_COMPILE)ld
 OBJCOPY = $(CROSS_COMPILE)objcopy
 
-CFLAGS = -march=rv64imac -mabi=lp64 -mcmodel=medany -O2 -Wall -Wextra -ffreestanding -nostdlib -nostartfiles -Iinclude
-ASFLAGS = -march=rv64imac -mabi=lp64
+CFLAGS = -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -O2 -Wall -Wextra -ffreestanding -nostdlib -nostartfiles -Iinclude
+ASFLAGS = -march=rv64imac_zicsr -mabi=lp64
 
 # Sources - startup first for link order
-CSRC = src/main.c src/uart.c src/watchdog.c src/memory_scrub.c src/fault_inject.c src/stack_paint.c src/timer.c
+CSRC = src/main.c src/uart.c src/watchdog.c src/memory_scrub.c src/fault_inject.c src/stack_paint.c src/timer.c src/interrupt.c
 ASRC = src/startup.s
 OBJ = $(ASRC:.s=.o) $(CSRC:.c=.o)
 

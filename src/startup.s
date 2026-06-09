@@ -15,6 +15,8 @@ _start:
     j 1b
 2:
 
+    call timer_init       # Must run first: sets mtimecmp to prevent premature interrupt
+    call interrupt_init   # Then enable interrupts safely
     call main
 
     # Infinite loop (should never reach here in normal operation)
