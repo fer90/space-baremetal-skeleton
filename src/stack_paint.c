@@ -1,5 +1,6 @@
 #include "common.h"
 #include "uart.h"
+#include "stack_paint.h"
 
 #define STACK_PAINT_PATTERN 0xDEADBEEF
 #define GUARD_SIZE 512

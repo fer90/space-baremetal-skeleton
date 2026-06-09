@@ -1,5 +1,6 @@
 #include "common.h"
 #include "uart.h"
+#include "watchdog.h"
 
 #define WATCHDOG_TIMEOUT 2000000UL // Adjust based on loop speed
 

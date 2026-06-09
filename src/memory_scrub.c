@@ -1,7 +1,6 @@
 #include "common.h"
 #include "uart.h"
-
-#define SCRUB_SIZE 512 // Bytes to scrub per call (small for demo)
+#include "memory_scrub.h"
 
 // Keep a golden copy in memory
 static uint8_t golden_copy[SCRUB_SIZE];

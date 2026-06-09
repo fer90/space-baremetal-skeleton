@@ -1,6 +1,10 @@
 #include <stdint.h>
 #include "uart.h"
 #include "common.h"
+#include "watchdog.h"
+#include "memory_scrub.h"
+#include "fault_inject.h"
+#include "stack_paint.h"
 
 volatile uint32_t system_ticks = 0;
 volatile uint8_t scrub_area[SCRUB_SIZE];

@@ -1,5 +1,7 @@
 #include "common.h"
 #include "uart.h"
+#include "fault_inject.h"
+#include "memory_scrub.h"
 
 #define FAULT_PROBABILITY 20
 
