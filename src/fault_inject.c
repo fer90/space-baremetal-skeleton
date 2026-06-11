@@ -26,5 +26,14 @@ void inject_random_fault(volatile uint8_t *area) {
         int bit = (r >> 8) % 8;
         area[idx] ^= (1u << bit);
         uart_puts("Simulated fault injected\r\n");
+
+        uart_put_hex(idx);
+        uart_puts(" (bit ");
+        uart_put_hex(bit);
+        uart_puts(") !!!\r\n");
+
+        // Show before/after for learning
+        uart_puts("Before scrub dump (first 64 bytes):\r\n");
+        uart_hex_dump((const uint8_t *)area, 64);
     }
 }

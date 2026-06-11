@@ -21,6 +21,11 @@ int main(void) {
 
     watchdog_init();
     memory_scrub_init(scrub_area);
+    
+    // Dump first 64 bytes of scrub_area
+    uart_puts("Scrub area dump:\r\n");
+    uart_hex_dump(scrub_area, 64);
+
     fault_inject_init();
     stack_paint_init();
 
