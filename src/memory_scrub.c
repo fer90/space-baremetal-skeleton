@@ -1,7 +1,4 @@
-#include "FreeRTOS.h"
-#include "task.h"
 #include "common.h"
-#include "memory_scrub.h"
 
 volatile uint8_t scrub_area[SCRUB_SIZE];
 
@@ -47,6 +44,6 @@ void vTaskMemoryScrub(void *pvParameters) {
     for (;;) {
         memory_scrub(scrub_area);
 
-	vTaskDelay(pdMS_TO_TICKS(800));
+        vTaskDelay(pdMS_TO_TICKS(800));
     }
 }

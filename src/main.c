@@ -47,6 +47,15 @@ int main(void)
         NULL
     );
 
+    xTaskCreate(
+        vTaskFaultInject,
+        "FaultInject",
+        configMINIMAL_STACK_SIZE * 2,
+        NULL,
+        1,
+        NULL	
+    );
+
     uart_puts("Starting FreeRTOS scheduler...\r\n");
 
     /* FreeRTOS owns all machine-mode traps from here on. */

@@ -1,39 +1,33 @@
 #include "common.h"
-#include "uart.h"
-#include "fault_inject.h"
-#include "memory_scrub.h"
-#include "timer.h"
-
-#define FAULT_PROBABILITY 20
-
-// Very simple Linear Congruential Generator (pseudo-random)
-static uint32_t rand_state = 12345UL;
-
-static uint32_t simple_rand(void) {
-    rand_state = rand_state * 1103515245UL + 12345UL;
-    return rand_state;
-}
 
 void fault_inject_init(void) {
     uart_puts("Fault injection initialized (SEU simulation)\r\n");
 }
 
 void inject_random_fault(volatile uint8_t *area) {
-    if ((get_system_ticks() % FAULT_PROBABILITY) == 0) {
-        // Flipping random bit in the scrub area
-        uint32_t r = simple_rand();
-        int idx = r % SCRUB_SIZE;
-        int bit = (r >> 8) % 8;
-        area[idx] ^= (1u << bit);
-        uart_puts("Simulated fault injected\r\n");
+    TickType_t ticks = xTaskGetTickCount();
+    uint32_t r = (uint32_t)ticks;
 
-        uart_put_hex(idx);
-        uart_puts(" (bit ");
-        uart_put_hex(bit);
-        uart_puts(") !!!\r\n");
+    int idx = r % SCRUB_SIZE;
+    int bit = (r >> 8) % 8;
+    area[idx] ^= (1u << bit);
+    uart_puts("Simulated fault injected @ tick ");
+    uart_put_hex((uint32_t)ticks);
+    uart_puts(" — byte ");
+    uart_put_hex(idx);
+    uart_puts(" (bit ");
+    uart_put_hex(bit);
+    uart_puts(") !!!\r\n");
 
-        // Show before/after for learning
-        uart_puts("Before scrub dump (first 64 bytes):\r\n");
-        uart_hex_dump((const uint8_t *)area, 64);
+    uart_puts("Before scrub dump (first 64 bytes):\r\n");
+    uart_hex_dump((const uint8_t *)area, 64);
+}
+
+void vTaskFaultInject(void *pvParameters) {
+    (void) pvParameters;
+
+    for (;;) {
+        vTaskDelay(pdMS_TO_TICKS(3000));
+        inject_random_fault(scrub_area);
     }
 }

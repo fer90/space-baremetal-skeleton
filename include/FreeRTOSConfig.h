@@ -28,7 +28,7 @@
 /* Memory allocation related definitions. */
 #define configSUPPORT_STATIC_ALLOCATION         0
 #define configSUPPORT_DYNAMIC_ALLOCATION        1
-#define configTOTAL_HEAP_SIZE                   ( ( size_t ) ( 10 * 1024 ) )   // 10KB heap for now
+#define configTOTAL_HEAP_SIZE                   ( ( size_t ) ( 32 * 1024 ) )   // 3 app tasks + idle + timer
 
 /* Hook function related definitions. */
 #define configUSE_IDLE_HOOK                     0

@@ -2,7 +2,10 @@
 #define COMMON_H
 
 #include <stdint.h>
+#include "FreeRTOS.h"
+#include "task.h"
 #include "uart.h"
 #include "memory_scrub.h"
+#include "fault_inject.h"
 
 #endif /* COMMON_H */
