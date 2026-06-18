@@ -45,7 +45,7 @@ void vTaskMemoryScrub(void *pvParameters) {
 
     for (;;) {
         memory_scrub(scrub_area);
-        watchdog_kick();
+        watchdog_kick(WATCHDOG_BIT_MEMSCRUB);
         vTaskDelay(pdMS_TO_TICKS(800));
     }
 }

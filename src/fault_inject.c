@@ -28,6 +28,7 @@ void vTaskFaultInject(void *pvParameters) {
 
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(3000));
+	watchdog_kick(WATCHDOG_BIT_FAULTINJECT);
         inject_random_fault(scrub_area);
     }
 }

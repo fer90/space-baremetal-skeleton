@@ -17,6 +17,7 @@ void vTaskHeartbeat(void *pvParameters)
     for( ;; )
     {
         uart_puts("HEARTBEAT from FreeRTOS task\r\n");
+	watchdog_kick(WATCHDOG_BIT_HEARTBEAT);
         vTaskDelay( pdMS_TO_TICKS(1000) );   // 1 second
     }
 }
