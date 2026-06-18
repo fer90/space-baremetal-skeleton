@@ -15,8 +15,6 @@ _start:
     j 1b
 2:
 
-    call timer_init       # Must run first: sets mtimecmp to prevent premature interrupt
-    call interrupt_init   # Then enable interrupts safely
     call main
 
     # Infinite loop (should never reach here in normal operation)
@@ -31,3 +29,6 @@ stack_low:
     .skip 4096   # 4KB stack
 .global stack_top
 stack_top:
+
+.global __freertos_irq_stack_top
+__freertos_irq_stack_top = stack_top

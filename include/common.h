@@ -2,5 +2,6 @@
 #define COMMON_H
 
 #include <stdint.h>
+#include "uart.h"
 
 #endif /* COMMON_H */

@@ -5,13 +5,31 @@ AS = $(CROSS_COMPILE)as
 LD = $(CROSS_COMPILE)ld
 OBJCOPY = $(CROSS_COMPILE)objcopy
 
-CFLAGS = -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -O2 -Wall -Wextra -ffreestanding -nostdlib -nostartfiles -Iinclude
-ASFLAGS = -march=rv64imac_zicsr -mabi=lp64
+CFLAGS = -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -O2 -Wall -Wextra \
+         -ffreestanding -nostdlib -nostartfiles -Iinclude -IFreeRTOS/Source/include \
+         -IFreeRTOS/Source/portable/GCC/RISC-V
+ASFLAGS = -march=rv64imac_zicsr -mabi=lp64 -IFreeRTOS/Source/portable/GCC/RISC-V
+
+# FreeRTOS source files
+FREERTOS_SRC = \
+    FreeRTOS/Source/tasks.c \
+    FreeRTOS/Source/queue.c \
+    FreeRTOS/Source/list.c \
+    FreeRTOS/Source/timers.c \
+    FreeRTOS/Source/event_groups.c \
+    FreeRTOS/Source/stream_buffer.c \
+    FreeRTOS/Source/portable/MemMang/heap_4.c \
+    FreeRTOS/Source/portable/GCC/RISC-V/port.c \
+    FreeRTOS/Source/portable/GCC/RISC-V/portASM.S
 
 # Sources - startup first for link order
-CSRC = src/main.c src/uart.c src/watchdog.c src/memory_scrub.c src/fault_inject.c src/stack_paint.c src/timer.c src/interrupt.c
+CSRC = src/main.c src/uart.c src/string.c src/watchdog.c src/memory_scrub.c \
+       src/fault_inject.c src/stack_paint.c src/timer.c src/interrupt.c \
+       $(FREERTOS_SRC)
 ASRC = src/startup.s
-OBJ = $(ASRC:.s=.o) $(CSRC:.c=.o)
+OBJ = $(ASRC:.s=.o) \
+      $(patsubst %.c,%.o,$(filter %.c,$(CSRC))) \
+      $(patsubst %.S,%.o,$(filter %.S,$(CSRC)))
 
 all: kernel.elf kernel.bin
 
@@ -27,8 +45,15 @@ kernel.bin: kernel.elf
 %.o: %.s
 	$(AS) $(ASFLAGS) $< -o $@
 
+%.o: FreeRTOS/Source/portable/GCC/RISC-V/%.S
+	$(AS) $(ASFLAGS) -c $< -o $@
+
+# Special rule for heap_4.c (in subdirectory)
+FreeRTOS/Source/portable/MemMang/%.o: FreeRTOS/Source/portable/MemMang/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
 clean:
-	rm -f src/*.o *.elf *.bin
+	rm -f $(OBJ) *.elf *.bin
 
 qemu: kernel.bin
 	qemu-system-riscv64 -machine virt -cpu rv64 -nographic -kernel kernel.bin -bios none
