@@ -28,8 +28,9 @@ void vTaskWatchdog(void *pvParameters) {
 
     (void) pvParameters;
 
+    watchdog_init();
+
     for(;;) {
-        watchdog_kick();
 	watchdog_check();
 
 	vTaskDelay(pdMS_TO_TICKS(200));
