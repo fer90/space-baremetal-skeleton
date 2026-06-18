@@ -1,38 +1,25 @@
 #include "common.h"
 
-#define WATCHDOG_TIMEOUT 50 // Adjust based on loop speed
-
-volatile uint32_t watchdog_counter = 0;
-
-void watchdog_init(void) {
-    watchdog_counter = WATCHDOG_TIMEOUT;
-    uart_puts("Watchdog initialized\r\n");
-}
+TaskHandle_t xWatchdogTaskHandle = NULL;
 
 void watchdog_kick(void) {
-    watchdog_counter = 0;
-    uart_puts("Watchdog kicked\r\n");
-}
-
-void watchdog_check(void) {
-    if (watchdog_counter > 0) {
-        watchdog_counter--;
-    } else {
-        uart_puts("WATCHDOG TIMEOUT - Resetting (FDIR demo)\r\n");
-        // In real hardware: trigger reset (e.g., via watchdog peripheral)
-        while(1);  // Simulate reset hang for demo
+    if (xWatchdogTaskHandle != NULL) {
+        xTaskNotifyGive(xWatchdogTaskHandle);
     }
 }
 
 void vTaskWatchdog(void *pvParameters) {
 
     (void) pvParameters;
-
-    watchdog_init();
+    xWatchdogTaskHandle = xTaskGetCurrentTaskHandle();
 
     for(;;) {
-	watchdog_check();
-
-	vTaskDelay(pdMS_TO_TICKS(200));
+        uint32_t kickCount = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1000));
+	if (kickCount > 0) {
+	    // System is alive
+	} else {
+	    uart_puts("WATCHDOG TIMEOUT - No Kick received!\r\n");
+	    for(;;); // Here we would trigger recovery
+	}
     }
 }
