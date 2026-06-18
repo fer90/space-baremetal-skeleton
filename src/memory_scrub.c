@@ -1,6 +1,9 @@
+#include "FreeRTOS.h"
+#include "task.h"
 #include "common.h"
-#include "uart.h"
 #include "memory_scrub.h"
+
+volatile uint8_t scrub_area[SCRUB_SIZE];
 
 // Keep a golden copy in memory
 static uint8_t golden_copy[SCRUB_SIZE];
@@ -34,5 +37,16 @@ void memory_scrub(volatile uint8_t *area) {
         uart_puts("Memory scrub: SEU(s) detected and corrected\r\n");
     } else {
         uart_puts("Memory scrub completed - No errors\r\n");
+    }
+}
+
+void vTaskMemoryScrub(void *pvParameters) {
+
+    (void) pvParameters;
+
+    for (;;) {
+        memory_scrub(scrub_area);
+
+	vTaskDelay(pdMS_TO_TICKS(800));
     }
 }

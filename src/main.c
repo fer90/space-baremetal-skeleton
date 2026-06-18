@@ -25,6 +25,8 @@ int main(void)
 {
     uart_puts("\r\n=== FreeRTOS Migration Started ===\r\n");
 
+    memory_scrub_init(scrub_area);
+
     // Create first task
     xTaskCreate(
         vTaskHeartbeat,          // Task function
@@ -33,6 +35,16 @@ int main(void)
         NULL,                    // Parameters
         1,                       // Priority
         NULL                     // Task handle
+    );
+
+    // Create Memory Scrub Task
+    xTaskCreate(
+        vTaskMemoryScrub,
+        "MemScrub",
+        configMINIMAL_STACK_SIZE * 3,   // Slightly bigger stack
+        NULL,
+        2,                    // Medium priority
+        NULL
     );
 
     uart_puts("Starting FreeRTOS scheduler...\r\n");
