@@ -1,8 +1,6 @@
 #include "common.h"
-#include "uart.h"
-#include "watchdog.h"
 
-#define WATCHDOG_TIMEOUT 2000000UL // Adjust based on loop speed
+#define WATCHDOG_TIMEOUT 50 // Adjust based on loop speed
 
 volatile uint32_t watchdog_counter = 0;
 
@@ -23,5 +21,17 @@ void watchdog_check(void) {
         uart_puts("WATCHDOG TIMEOUT - Resetting (FDIR demo)\r\n");
         // In real hardware: trigger reset (e.g., via watchdog peripheral)
         while(1);  // Simulate reset hang for demo
+    }
+}
+
+void vTaskWatchdog(void *pvParameters) {
+
+    (void) pvParameters;
+
+    for(;;) {
+        watchdog_kick();
+	watchdog_check();
+
+	vTaskDelay(pdMS_TO_TICKS(200));
     }
 }

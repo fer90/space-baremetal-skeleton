@@ -7,5 +7,6 @@
 #include "uart.h"
 #include "memory_scrub.h"
 #include "fault_inject.h"
+#include "watchdog.h"
 
 #endif /* COMMON_H */

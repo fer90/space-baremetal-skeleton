@@ -25,9 +25,20 @@ int main(void)
 {
     uart_puts("\r\n=== FreeRTOS Migration Started ===\r\n");
 
+    watchdog_init();
     memory_scrub_init(scrub_area);
 
-    // Create first task
+    // High priority watchdog task
+    xTaskCreate(
+        vTaskWatchdog,
+	"Watchdog",
+	configMINIMAL_STACK_SIZE * 2,
+	NULL,
+	4,
+	NULL
+    );
+
+    // Create Heartbeat
     xTaskCreate(
         vTaskHeartbeat,          // Task function
         "Heartbeat",             // Task name
