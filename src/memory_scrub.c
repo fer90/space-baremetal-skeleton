@@ -41,6 +41,8 @@ void vTaskMemoryScrub(void *pvParameters) {
 
     (void) pvParameters;
 
+    memory_scrub_init(scrub_area);
+
     for (;;) {
         memory_scrub(scrub_area);
 

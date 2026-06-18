@@ -25,8 +25,6 @@ int main(void)
 {
     uart_puts("\r\n=== FreeRTOS Migration Started ===\r\n");
 
-    memory_scrub_init(scrub_area);
-
     // High priority watchdog task
     xTaskCreate(
         vTaskWatchdog,
