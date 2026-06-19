@@ -3,10 +3,12 @@
 
 #ifdef DEBUG
 
+#include <stdbool.h>
+#include <stdint.h>
+
 void isr_stack_guard_init(void);
-void isr_stack_guard_check(void);
-void isr_stack_guard_print_usage(void);
-void vTaskIsrStackGuard(void *pvParameters);
+bool isr_stack_guard_check(void);
+uint32_t isr_stack_guard_get_hwm_bytes(void);
 
 #endif /* DEBUG */
 

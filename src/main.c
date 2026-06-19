@@ -32,15 +32,13 @@ int main(void)
     TaskHandle_t xMemScrubHandle = NULL;
     TaskHandle_t xFaultInjectHandle = NULL;
 #ifdef DEBUG
-    TaskHandle_t xIsrGuardHandle = NULL;
-    TaskHandle_t xStackHwmHandle = NULL;
+    TaskHandle_t xTelemetryHandle = NULL;
 
     const configSTACK_DEPTH_TYPE watchdog_stack = configMINIMAL_STACK_SIZE * 2;
     const configSTACK_DEPTH_TYPE heartbeat_stack = configMINIMAL_STACK_SIZE * 2;
     const configSTACK_DEPTH_TYPE memscrub_stack = configMINIMAL_STACK_SIZE * 3;
-    const configSTACK_DEPTH_TYPE isrguard_stack = configMINIMAL_STACK_SIZE * 2;
     const configSTACK_DEPTH_TYPE faultinject_stack = configMINIMAL_STACK_SIZE * 2;
-    const configSTACK_DEPTH_TYPE stack_hwm_stack = configMINIMAL_STACK_SIZE * 2;
+    const configSTACK_DEPTH_TYPE telemetry_stack = configMINIMAL_STACK_SIZE * 2;
 #else
     const configSTACK_DEPTH_TYPE watchdog_stack = configMINIMAL_STACK_SIZE * 2;
     const configSTACK_DEPTH_TYPE heartbeat_stack = configMINIMAL_STACK_SIZE * 2;
@@ -53,19 +51,16 @@ int main(void)
     xTaskCreate(vTaskWatchdog, "Watchdog", watchdog_stack, NULL, 4, &xWatchdogHandle);
     xTaskCreate(vTaskHeartbeat, "Heartbeat", heartbeat_stack, NULL, 1, &xHeartbeatHandle);
     xTaskCreate(vTaskMemoryScrub, "MemScrub", memscrub_stack, NULL, 2, &xMemScrubHandle);
-#ifdef DEBUG
-    xTaskCreate(vTaskIsrStackGuard, "IsrGuard", isrguard_stack, NULL, 2, &xIsrGuardHandle);
-#endif
     xTaskCreate(vTaskFaultInject, "FaultInject", faultinject_stack, NULL, 1, &xFaultInjectHandle);
 
 #ifdef DEBUG
-    stack_hwm_register(xWatchdogHandle, "Watchdog", watchdog_stack);
-    stack_hwm_register(xHeartbeatHandle, "Heartbeat", heartbeat_stack);
-    stack_hwm_register(xMemScrubHandle, "MemScrub", memscrub_stack);
-    stack_hwm_register(xIsrGuardHandle, "IsrGuard", isrguard_stack);
-    stack_hwm_register(xFaultInjectHandle, "FaultInject", faultinject_stack);
-    xTaskCreate(vTaskStackHwmMonitor, "StackHwm", stack_hwm_stack, NULL, 1, &xStackHwmHandle);
-    stack_hwm_register(xStackHwmHandle, "StackHwm", stack_hwm_stack);
+    isr_stack_guard_init();
+    telemetry_register_task(xWatchdogHandle, "Watchdog", watchdog_stack);
+    telemetry_register_task(xHeartbeatHandle, "Heartbeat", heartbeat_stack);
+    telemetry_register_task(xMemScrubHandle, "MemScrub", memscrub_stack);
+    telemetry_register_task(xFaultInjectHandle, "FaultInject", faultinject_stack);
+    xTaskCreate(vTaskTelemetry, "Telemetry", telemetry_stack, NULL, 1, &xTelemetryHandle);
+    telemetry_register_task(xTelemetryHandle, "Telemetry", telemetry_stack);
 #endif
 
     uart_puts("Starting FreeRTOS scheduler...\r\n");

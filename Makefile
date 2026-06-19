@@ -5,7 +5,7 @@ AS = $(CROSS_COMPILE)as
 LD = $(CROSS_COMPILE)ld
 OBJCOPY = $(CROSS_COMPILE)objcopy
 
-# Set DEBUG=1 or run `make debug` to enable ISR stack guard task
+# Set DEBUG=1 or run `make debug` to enable telemetry task
 DEBUG ?= 0
 DEBUG_CFLAGS = $(if $(filter 1,$(DEBUG)),-DDEBUG,)
 
@@ -28,7 +28,7 @@ FREERTOS_SRC = \
 
 # Sources - startup first for link order
 CSRC = src/main.c src/uart.c src/string.c src/watchdog.c src/memory_scrub.c \
-       src/fault_inject.c src/isr_stack_guard.c src/stack_hwm.c src/timer.c src/interrupt.c \
+       src/fault_inject.c src/isr_stack_guard.c src/telemetry.c src/timer.c src/interrupt.c \
        $(FREERTOS_SRC)
 ASRC = src/startup.s
 OBJ = $(ASRC:.s=.o) \
