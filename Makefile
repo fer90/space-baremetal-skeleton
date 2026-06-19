@@ -5,9 +5,13 @@ AS = $(CROSS_COMPILE)as
 LD = $(CROSS_COMPILE)ld
 OBJCOPY = $(CROSS_COMPILE)objcopy
 
+# Set DEBUG=1 or run `make debug` to enable ISR stack guard task
+DEBUG ?= 0
+DEBUG_CFLAGS = $(if $(filter 1,$(DEBUG)),-DDEBUG,)
+
 CFLAGS = -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -O2 -Wall -Wextra \
          -ffreestanding -nostdlib -nostartfiles -Iinclude -IFreeRTOS/Source/include \
-         -IFreeRTOS/Source/portable/GCC/RISC-V
+         -IFreeRTOS/Source/portable/GCC/RISC-V $(DEBUG_CFLAGS)
 ASFLAGS = -march=rv64imac_zicsr -mabi=lp64 -IFreeRTOS/Source/portable/GCC/RISC-V
 
 # FreeRTOS source files
@@ -24,7 +28,7 @@ FREERTOS_SRC = \
 
 # Sources - startup first for link order
 CSRC = src/main.c src/uart.c src/string.c src/watchdog.c src/memory_scrub.c \
-       src/fault_inject.c src/stack_paint.c src/timer.c src/interrupt.c \
+       src/fault_inject.c src/isr_stack_guard.c src/timer.c src/interrupt.c \
        $(FREERTOS_SRC)
 ASRC = src/startup.s
 OBJ = $(ASRC:.s=.o) \
@@ -58,4 +62,7 @@ clean:
 qemu: kernel.bin
 	qemu-system-riscv64 -machine virt -cpu rv64 -nographic -kernel kernel.bin -bios none
 
-.PHONY: all clean qemu
+debug:
+	$(MAKE) DEBUG=1 all
+
+.PHONY: all clean qemu debug

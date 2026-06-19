@@ -26,44 +26,13 @@ int main(void)
 {
     uart_puts("\r\n=== FreeRTOS Migration Started ===\r\n");
 
-    // High priority watchdog task
-    xTaskCreate(
-        vTaskWatchdog,
-	"Watchdog",
-	configMINIMAL_STACK_SIZE * 2,
-	NULL,
-	4,
-	NULL
-    );
-
-    // Create Heartbeat
-    xTaskCreate(
-        vTaskHeartbeat,          // Task function
-        "Heartbeat",             // Task name
-        configMINIMAL_STACK_SIZE * 2, // Stack size
-        NULL,                    // Parameters
-        1,                       // Priority
-        NULL                     // Task handle
-    );
-
-    // Create Memory Scrub Task
-    xTaskCreate(
-        vTaskMemoryScrub,
-        "MemScrub",
-        configMINIMAL_STACK_SIZE * 3,   // Slightly bigger stack
-        NULL,
-        2,                    // Medium priority
-        NULL
-    );
-
-    xTaskCreate(
-        vTaskFaultInject,
-        "FaultInject",
-        configMINIMAL_STACK_SIZE * 2,
-        NULL,
-        1,
-        NULL	
-    );
+    xTaskCreate(vTaskWatchdog, "Watchdog", configMINIMAL_STACK_SIZE * 2, NULL, 4, NULL);
+    xTaskCreate(vTaskHeartbeat, "Heartbeat", configMINIMAL_STACK_SIZE * 2, NULL, 1, NULL);
+    xTaskCreate(vTaskMemoryScrub, "MemScrub", configMINIMAL_STACK_SIZE * 3, NULL, 2, NULL);
+#ifdef DEBUG
+    xTaskCreate(vTaskIsrStackGuard, "IsrGuard", configMINIMAL_STACK_SIZE * 2, NULL, 2, NULL);
+#endif
+    xTaskCreate(vTaskFaultInject, "FaultInject", configMINIMAL_STACK_SIZE * 2, NULL, 1, NULL);
 
     uart_puts("Starting FreeRTOS scheduler...\r\n");
 
