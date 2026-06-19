@@ -8,6 +8,7 @@
 #include "memory_scrub.h"
 #ifdef DEBUG
 #include "isr_stack_guard.h"
+#include "stack_hwm.h"
 #endif
 #include "fault_inject.h"
 #include "watchdog.h"

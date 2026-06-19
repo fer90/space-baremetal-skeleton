@@ -27,15 +27,46 @@ void vTaskHeartbeat(void *pvParameters)
 
 int main(void)
 {
+    TaskHandle_t xWatchdogHandle = NULL;
+    TaskHandle_t xHeartbeatHandle = NULL;
+    TaskHandle_t xMemScrubHandle = NULL;
+    TaskHandle_t xFaultInjectHandle = NULL;
+#ifdef DEBUG
+    TaskHandle_t xIsrGuardHandle = NULL;
+    TaskHandle_t xStackHwmHandle = NULL;
+
+    const configSTACK_DEPTH_TYPE watchdog_stack = configMINIMAL_STACK_SIZE * 2;
+    const configSTACK_DEPTH_TYPE heartbeat_stack = configMINIMAL_STACK_SIZE * 2;
+    const configSTACK_DEPTH_TYPE memscrub_stack = configMINIMAL_STACK_SIZE * 3;
+    const configSTACK_DEPTH_TYPE isrguard_stack = configMINIMAL_STACK_SIZE * 2;
+    const configSTACK_DEPTH_TYPE faultinject_stack = configMINIMAL_STACK_SIZE * 2;
+    const configSTACK_DEPTH_TYPE stack_hwm_stack = configMINIMAL_STACK_SIZE * 2;
+#else
+    const configSTACK_DEPTH_TYPE watchdog_stack = configMINIMAL_STACK_SIZE * 2;
+    const configSTACK_DEPTH_TYPE heartbeat_stack = configMINIMAL_STACK_SIZE * 2;
+    const configSTACK_DEPTH_TYPE memscrub_stack = configMINIMAL_STACK_SIZE * 3;
+    const configSTACK_DEPTH_TYPE faultinject_stack = configMINIMAL_STACK_SIZE * 2;
+#endif
+
     uart_puts("\r\n=== FreeRTOS Migration Started ===\r\n");
 
-    xTaskCreate(vTaskWatchdog, "Watchdog", configMINIMAL_STACK_SIZE * 2, NULL, 4, NULL);
-    xTaskCreate(vTaskHeartbeat, "Heartbeat", configMINIMAL_STACK_SIZE * 2, NULL, 1, NULL);
-    xTaskCreate(vTaskMemoryScrub, "MemScrub", configMINIMAL_STACK_SIZE * 3, NULL, 2, NULL);
+    xTaskCreate(vTaskWatchdog, "Watchdog", watchdog_stack, NULL, 4, &xWatchdogHandle);
+    xTaskCreate(vTaskHeartbeat, "Heartbeat", heartbeat_stack, NULL, 1, &xHeartbeatHandle);
+    xTaskCreate(vTaskMemoryScrub, "MemScrub", memscrub_stack, NULL, 2, &xMemScrubHandle);
 #ifdef DEBUG
-    xTaskCreate(vTaskIsrStackGuard, "IsrGuard", configMINIMAL_STACK_SIZE * 2, NULL, 2, NULL);
+    xTaskCreate(vTaskIsrStackGuard, "IsrGuard", isrguard_stack, NULL, 2, &xIsrGuardHandle);
 #endif
-    xTaskCreate(vTaskFaultInject, "FaultInject", configMINIMAL_STACK_SIZE * 2, NULL, 1, NULL);
+    xTaskCreate(vTaskFaultInject, "FaultInject", faultinject_stack, NULL, 1, &xFaultInjectHandle);
+
+#ifdef DEBUG
+    stack_hwm_register(xWatchdogHandle, "Watchdog", watchdog_stack);
+    stack_hwm_register(xHeartbeatHandle, "Heartbeat", heartbeat_stack);
+    stack_hwm_register(xMemScrubHandle, "MemScrub", memscrub_stack);
+    stack_hwm_register(xIsrGuardHandle, "IsrGuard", isrguard_stack);
+    stack_hwm_register(xFaultInjectHandle, "FaultInject", faultinject_stack);
+    xTaskCreate(vTaskStackHwmMonitor, "StackHwm", stack_hwm_stack, NULL, 1, &xStackHwmHandle);
+    stack_hwm_register(xStackHwmHandle, "StackHwm", stack_hwm_stack);
+#endif
 
     uart_puts("Starting FreeRTOS scheduler...\r\n");
 
