@@ -1,9 +1,9 @@
 #ifndef MEMORY_SCRUB_H
 #define MEMORY_SCRUB_H
 
-#include <stdint.h>
 #include <stdbool.h>
-#include "fault_queue.h"
+#include <stdint.h>
+#include "system_defs.h"
 
 #define SCRUB_SIZE 512
 

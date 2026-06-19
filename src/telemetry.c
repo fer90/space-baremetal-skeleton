@@ -2,8 +2,9 @@
 
 #include "common.h"
 #include "telemetry.h"
+#include "timers.h"
 
-#define TELEMETRY_MAX_TASKS 8
+#define TELEMETRY_MAX_TASKS 10
 #define TELEMETRY_PERIOD_MS 15000
 
 typedef struct {
@@ -15,38 +16,21 @@ typedef struct {
 
 static telemetry_task_entry_t task_entries[TELEMETRY_MAX_TASKS];
 static size_t task_entry_count = 0;
-
-static void print_dec(uint32_t value) {
-    char buf[11];
-    int i = 10;
-
-    buf[i] = '\0';
-    if (value == 0) {
-        uart_putc('0');
-        return;
-    }
-
-    while (value > 0) {
-        buf[--i] = (char) ('0' + (value % 10));
-        value /= 10;
-    }
-
-    uart_puts(&buf[i]);
-}
+static bool kernel_tasks_registered = false;
 
 static void print_uptime(void) {
     uint32_t uptime_s = (uint32_t) (xTaskGetTickCount() / configTICK_RATE_HZ);
 
     uart_puts("uptime_s=");
-    print_dec(uptime_s);
+    uart_put_dec(uptime_s);
     uart_puts("\r\n");
 }
 
 static void print_heap(void) {
     uart_puts("heap: free=");
-    print_dec((uint32_t) xPortGetFreeHeapSize());
+    uart_put_dec((uint32_t) xPortGetFreeHeapSize());
     uart_puts(" min_ever=");
-    print_dec((uint32_t) xPortGetMinimumEverFreeHeapSize());
+    uart_put_dec((uint32_t) xPortGetMinimumEverFreeHeapSize());
     uart_puts("\r\n");
 }
 
@@ -56,7 +40,7 @@ static void print_isr_stack(void) {
     uart_puts("isr_stack: ");
     uart_puts(corrupt ? "CORRUPT" : "ok");
     uart_puts(" hwm_bytes=");
-    print_dec(isr_stack_guard_get_hwm_bytes());
+    uart_put_dec(isr_stack_guard_get_hwm_bytes());
     uart_puts("\r\n");
 }
 
@@ -75,16 +59,16 @@ static void print_task_line(telemetry_task_entry_t *entry) {
     uart_puts("  ");
     uart_puts(entry->name);
     uart_puts(": alloc=");
-    print_dec((uint32_t) entry->allocated_words);
+    uart_put_dec((uint32_t) entry->allocated_words);
     uart_puts(" free=");
-    print_dec((uint32_t) free_words);
+    uart_put_dec((uint32_t) free_words);
     uart_puts(" peak=");
-    print_dec((uint32_t) (entry->allocated_words - entry->min_free_words));
+    uart_put_dec((uint32_t) (entry->allocated_words - entry->min_free_words));
     uart_puts("\r\n");
 }
 
 static void print_task_stacks(void) {
-    uart_puts("stacks (words):\r\n");
+    uart_puts("task stacks HWM (words):\r\n");
 
     for (size_t i = 0; i < task_entry_count; i++) {
         print_task_line(&task_entries[i]);
@@ -106,6 +90,27 @@ void telemetry_register_task(TaskHandle_t handle,
     task_entry_count++;
 }
 
+void telemetry_register_kernel_tasks(void) {
+    TaskHandle_t idle_handle;
+    TaskHandle_t timer_handle;
+
+    if (kernel_tasks_registered) {
+        return;
+    }
+
+    idle_handle = xTaskGetIdleTaskHandle();
+    if (idle_handle != NULL) {
+        telemetry_register_task(idle_handle, "Idle", configMINIMAL_STACK_SIZE);
+    }
+
+    timer_handle = xTimerGetTimerDaemonTaskHandle();
+    if (timer_handle != NULL) {
+        telemetry_register_task(timer_handle, "TmrSvc", configTIMER_TASK_STACK_DEPTH);
+    }
+
+    kernel_tasks_registered = true;
+}
+
 void telemetry_print_snapshot(void) {
     taskENTER_CRITICAL();
     uart_puts("=== telemetry ===\r\n");
@@ -119,6 +124,8 @@ void telemetry_print_snapshot(void) {
 
 void vTaskTelemetry(void *pvParameters) {
     (void) pvParameters;
+
+    telemetry_register_kernel_tasks();
 
     for (;;) {
         telemetry_print_snapshot();

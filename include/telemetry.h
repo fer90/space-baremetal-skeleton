@@ -10,6 +10,8 @@ void telemetry_register_task(TaskHandle_t handle,
                              const char *name,
                              configSTACK_DEPTH_TYPE allocated_words);
 
+void telemetry_register_kernel_tasks(void);
+
 void telemetry_print_snapshot(void);
 
 void vTaskTelemetry(void *pvParameters);

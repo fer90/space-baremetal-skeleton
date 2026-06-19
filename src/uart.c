@@ -16,7 +16,23 @@ void uart_puts(const char *s) {
     }
 }
 
-// ====================== HEX PRINTING ======================
+void uart_put_dec(uint32_t value) {
+    char buf[11];
+    int i = 10;
+
+    buf[i] = '\0';
+    if (value == 0) {
+        uart_putc('0');
+        return;
+    }
+
+    while (value > 0) {
+        buf[--i] = (char) ('0' + (value % 10));
+        value /= 10;
+    }
+
+    uart_puts(&buf[i]);
+}
 
 static const char hex_chars[] = "0123456789ABCDEF";
 

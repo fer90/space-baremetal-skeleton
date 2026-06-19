@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "FreeRTOS.h"
 #include "task.h"
+#include "system_defs.h"
 #include "uart.h"
 #include "memory_scrub.h"
 #ifdef DEBUG

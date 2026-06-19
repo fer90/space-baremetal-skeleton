@@ -6,13 +6,14 @@ void fault_inject_init(void) {
 
 void inject_random_fault(volatile uint8_t *area) {
     TickType_t ticks = xTaskGetTickCount();
-    uint32_t r = (uint32_t)ticks;
+    uint32_t r = (uint32_t) ticks;
 
     int idx = r % SCRUB_SIZE;
     int bit = (r >> 8) % 8;
+
     area[idx] ^= (1u << bit);
     uart_puts("Simulated fault injected @ tick ");
-    uart_put_hex((uint32_t)ticks);
+    uart_put_hex((uint32_t) ticks);
     uart_puts(" — byte ");
     uart_put_hex(idx);
     uart_puts(" (bit ");
@@ -20,7 +21,7 @@ void inject_random_fault(volatile uint8_t *area) {
     uart_puts(") !!!\r\n");
 
     uart_puts("Before scrub dump (first 64 bytes):\r\n");
-    uart_hex_dump((const uint8_t *)area, 64);
+    uart_hex_dump((const uint8_t *) area, 64);
 
     if (xFaultQueue != NULL) {
         FaultEvent_t event = {
@@ -36,7 +37,7 @@ void vTaskFaultInject(void *pvParameters) {
 
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(3000));
-	watchdog_kick(WATCHDOG_BIT_FAULTINJECT);
+        watchdog_kick(WATCHDOG_BIT_FAULTINJECT);
         inject_random_fault(scrub_area);
     }
 }
