@@ -6,30 +6,56 @@ volatile uint8_t scrub_area[SCRUB_SIZE];
 static uint8_t golden_copy[SCRUB_SIZE];
 
 void memory_scrub_init(volatile uint8_t *area) {
-    // Fill with a pattern (0xAA) to show it's working
     for (int i = 0; i < SCRUB_SIZE; i++) {
         area[i] = (uint8_t)i;
-        golden_copy[i] = (uint8_t)i; // Save the original reference
+        golden_copy[i] = (uint8_t)i;
     }
     uart_puts("Memory scrub initialized (EDAC Simulation)\r\n");
 }
 
+bool memory_scrub_fix_event(volatile uint8_t *area, const FaultEvent_t *event) {
+    uint32_t idx;
+    uint8_t bit_mask;
+    uint8_t actual;
+    uint8_t expected;
+
+    if (event == NULL || event->index >= SCRUB_SIZE || event->bit >= 8) {
+        return false;
+    }
+
+    idx = event->index;
+    bit_mask = (uint8_t) (1u << event->bit);
+    actual = area[idx];
+    expected = golden_copy[idx];
+
+    if ((actual & bit_mask) == (expected & bit_mask)) {
+        uart_puts("Memory scrub: targeted check @ byte ");
+        uart_put_hex(idx);
+        uart_puts(" bit ");
+        uart_put_hex(event->bit);
+        uart_puts(" — ok\r\n");
+        return false;
+    }
+
+    area[idx] = (uint8_t) ((actual & ~bit_mask) | (expected & bit_mask));
+    uart_puts("Memory scrub: SEU corrected @ byte ");
+    uart_put_hex(idx);
+    uart_puts(" bit ");
+    uart_put_hex(event->bit);
+    uart_puts("\r\n");
+    return true;
+}
+
 void memory_scrub(volatile uint8_t *area) {
     uint32_t errors_corrected = 0;
-    // In a real system, this would:
-    // 1. Read EDAC error registers
-    // 2. Identify bad memory addresses
-    // 3. Fetch correct data from ECC or backup
-    // 4. Write corrected data to bad address
 
-    // For demo: just toggle pattern every call
     for (int i = 0; i < SCRUB_SIZE; i++) {
-        // Simulate SEU check/correct
         if (area[i] != golden_copy[i]) {
-            area[i] = golden_copy[i]; // "Correct it"
+            area[i] = golden_copy[i];
             errors_corrected++;
         }
     }
+
     if (errors_corrected > 0) {
         uart_puts("Memory scrub: SEU(s) detected and corrected\r\n");
     } else {
@@ -38,18 +64,24 @@ void memory_scrub(volatile uint8_t *area) {
 }
 
 void vTaskMemoryScrub(void *pvParameters) {
-
     (void) pvParameters;
     FaultEvent_t event;
+    bool had_event;
 
     memory_scrub_init(scrub_area);
 
     for (;;) {
+        had_event = false;
 
-	if (xQueueReceive(xFaultQueue, &event, 0) == pdPASS) {
-	    uart_puts("MemScrub: Immediate scrub triggered by fault injection\r\n");
-	}
-        memory_scrub(scrub_area);
+        while (xQueueReceive(xFaultQueue, &event, 0) == pdPASS) {
+            had_event = true;
+            (void) memory_scrub_fix_event(scrub_area, &event);
+        }
+
+        if (!had_event) {
+            memory_scrub(scrub_area);
+        }
+
         watchdog_kick(WATCHDOG_BIT_MEMSCRUB);
         vTaskDelay(pdMS_TO_TICKS(800));
     }
