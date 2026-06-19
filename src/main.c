@@ -6,6 +6,7 @@ extern void freertos_risc_v_trap_handler( void );
 
 void vApplicationStackOverflowHook( TaskHandle_t xTask, char *pcTaskName )
 {
+    (void) xTask;
     uart_puts("!!! STACK OVERFLOW in task: ");
     uart_puts(pcTaskName);
     uart_puts(" !!!\r\n");
@@ -14,10 +15,12 @@ void vApplicationStackOverflowHook( TaskHandle_t xTask, char *pcTaskName )
 
 void vTaskHeartbeat(void *pvParameters)
 {
+    (void) pvParameters;
+
     for( ;; )
     {
         uart_puts("HEARTBEAT from FreeRTOS task\r\n");
-	watchdog_kick(WATCHDOG_BIT_HEARTBEAT);
+        watchdog_kick(WATCHDOG_BIT_HEARTBEAT);
         vTaskDelay( pdMS_TO_TICKS(1000) );   // 1 second
     }
 }
