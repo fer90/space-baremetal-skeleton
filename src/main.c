@@ -46,6 +46,7 @@ int main(void)
     const configSTACK_DEPTH_TYPE faultinject_stack = configMINIMAL_STACK_SIZE * 2;
 #endif
 
+    fault_queue_init();
     uart_puts("\r\n=== FreeRTOS Migration Started ===\r\n");
 
     xTaskCreate(vTaskWatchdog, "Watchdog", watchdog_stack, NULL, 4, &xWatchdogHandle);

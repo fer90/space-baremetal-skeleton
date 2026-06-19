@@ -21,6 +21,14 @@ void inject_random_fault(volatile uint8_t *area) {
 
     uart_puts("Before scrub dump (first 64 bytes):\r\n");
     uart_hex_dump((const uint8_t *)area, 64);
+
+    if (xFaultQueue != NULL) {
+        FaultEvent_t event = {
+            .index = (uint32_t) idx,
+            .bit = (uint8_t) bit,
+        };
+        (void) xQueueSend(xFaultQueue, &event, 0);
+    }
 }
 
 void vTaskFaultInject(void *pvParameters) {

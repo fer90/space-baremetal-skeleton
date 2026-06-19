@@ -28,7 +28,8 @@ FREERTOS_SRC = \
 
 # Sources - startup first for link order
 CSRC = src/main.c src/uart.c src/string.c src/watchdog.c src/memory_scrub.c \
-       src/fault_inject.c src/isr_stack_guard.c src/telemetry.c src/timer.c src/interrupt.c \
+       src/fault_inject.c src/fault_queue.c src/isr_stack_guard.c src/telemetry.c \
+       src/timer.c src/interrupt.c \
        $(FREERTOS_SRC)
 ASRC = src/startup.s
 OBJ = $(ASRC:.s=.o) \

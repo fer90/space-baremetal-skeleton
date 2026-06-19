@@ -40,10 +40,15 @@ void memory_scrub(volatile uint8_t *area) {
 void vTaskMemoryScrub(void *pvParameters) {
 
     (void) pvParameters;
+    FaultEvent_t event;
 
     memory_scrub_init(scrub_area);
 
     for (;;) {
+
+	if (xQueueReceive(xFaultQueue, &event, 0) == pdPASS) {
+	    uart_puts("MemScrub: Immediate scrub triggered by fault injection\r\n");
+	}
         memory_scrub(scrub_area);
         watchdog_kick(WATCHDOG_BIT_MEMSCRUB);
         vTaskDelay(pdMS_TO_TICKS(800));

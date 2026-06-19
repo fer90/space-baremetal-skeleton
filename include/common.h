@@ -10,6 +10,7 @@
 #include "isr_stack_guard.h"
 #include "telemetry.h"
 #endif
+#include "fault_queue.h"
 #include "fault_inject.h"
 #include "watchdog.h"
 
