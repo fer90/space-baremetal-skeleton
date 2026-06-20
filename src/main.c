@@ -40,6 +40,7 @@ int main(void) {
     TaskHandle_t xHeartbeatHandle = NULL;
     TaskHandle_t xMemScrubHandle = NULL;
     TaskHandle_t xFaultInjectHandle = NULL;
+    TaskHandle_t xCommandHandlerHandle = NULL;
 #ifdef DEBUG
     TaskHandle_t xTelemetryHandle = NULL;
 #endif
@@ -48,6 +49,7 @@ int main(void) {
         system_halt("fault_queue_init failed");
     }
 
+    command_init();
     uart_puts("\r\n=== FreeRTOS Migration Started ===\r\n");
 
     create_app_task(vTaskWatchdog, "Watchdog", TASK_STACK_WATCHDOG,
@@ -60,7 +62,10 @@ int main(void) {
                     TASK_PRIO_MEMSCRUB, &xMemScrubHandle);
     create_app_task(vTaskFaultInject, "FaultInject", TASK_STACK_FAULTINJECT,
                     TASK_PRIO_FAULTINJECT, &xFaultInjectHandle);
-
+    create_app_task(vTaskCommandInput, "CmdInput", TASK_STACK_COMMANDINPUT,
+                    TASK_PRIO_COMMANDINPUT, NULL);
+    create_app_task(vTaskCommandHandler, "CommandHandler", TASK_STACK_COMMANDHANDLER,
+                    TASK_PRIO_COMMANDHANDLER, &xCommandHandlerHandle);
 #ifdef DEBUG
     isr_stack_guard_init();
     telemetry_register_task(xWatchdogHandle, "Watchdog", TASK_STACK_WATCHDOG);

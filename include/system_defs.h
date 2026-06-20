@@ -31,7 +31,7 @@ typedef struct {
  *               when lower tasks are ready; it mostly blocks on notify.
  * MemScrub (2): above heartbeat/fault-inject so targeted SEU fixes run
  *               promptly after a fault event is queued.
- * Heartbeat / FaultInject / Telemetry (1): periodic work; share time slice.
+ * Heartbeat / FaultInject / Telemetry / CmdInput (1): periodic or I/O polling.
  * Idle (0):     kernel idle task.
  * -------------------------------------------------------------------------- */
 #define TASK_PRIO_WATCHDOG         4
@@ -40,6 +40,8 @@ typedef struct {
 #define TASK_PRIO_HEARTBEAT        1
 #define TASK_PRIO_FAULTINJECT      1
 #define TASK_PRIO_TELEMETRY        1
+#define TASK_PRIO_COMMANDHANDLER   2
+#define TASK_PRIO_COMMANDINPUT     1
 
 /* --------------------------------------------------------------------------
  * Task stack depths (FreeRTOS words; ×8 bytes on rv64)
@@ -50,5 +52,7 @@ typedef struct {
 #define TASK_STACK_MEMSCRUB        (configMINIMAL_STACK_SIZE * 3)
 #define TASK_STACK_FAULTINJECT     (configMINIMAL_STACK_SIZE * 2)
 #define TASK_STACK_TELEMETRY       (configMINIMAL_STACK_SIZE * 2)
+#define TASK_STACK_COMMANDHANDLER  (configMINIMAL_STACK_SIZE * 2)
+#define TASK_STACK_COMMANDINPUT    (configMINIMAL_STACK_SIZE * 2)
 
 #endif /* SYSTEM_DEFS_H */

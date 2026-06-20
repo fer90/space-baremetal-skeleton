@@ -16,5 +16,6 @@
 #include "watchdog.h"
 #include "state_machine.h"
 #include "system_state.h"
+#include "command.h"
 
 #endif /* COMMON_H */
