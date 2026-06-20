@@ -1,18 +1,32 @@
 #include <stdint.h>
 #include "uart.h"
 
-#define UART_BASE 0x10000000UL
+#define UART_BASE     0x10000000UL
+#define UART_LSR_THRE 0x20u
+#define UART_LSR_DR   0x01u
+
+static volatile uint8_t *uart_regs(void) {
+    return (volatile uint8_t *) UART_BASE;
+}
 
 void uart_putc(char c) {
-    volatile uint8_t *uart = (uint8_t *)UART_BASE;
-    /* Simple 16550-like TX ready poll
-     * In the 16550 UART register map, offset 5 is the Line Status Register
-     * Bit 5 (value 0x20 = binary 0010 0000) in the LSR is called THRE (Transmit Holding Register Empty)
-     * THRE = 1 -> UART's transmit buffer is ready to accept a new char
-     * THRE = 0 -> UART is busy sending previous char
-     * */
-    while ((*(uart + 5) & 0x20) == 0); // While THRE is NOT set -> busy/wait (ugly polling)
-    *uart = c;
+    volatile uint8_t *uart = uart_regs();
+
+    while ((uart[5] & UART_LSR_THRE) == 0) {
+    }
+    uart[0] = (uint8_t) c;
+}
+
+bool uart_rx_ready(void) {
+    return (uart_regs()[5] & UART_LSR_DR) != 0;
+}
+
+char uart_getc(void) {
+    volatile uint8_t *uart = uart_regs();
+
+    while ((uart[5] & UART_LSR_DR) == 0) {
+    }
+    return (char) uart[0];
 }
 
 void uart_puts(const char *s) {

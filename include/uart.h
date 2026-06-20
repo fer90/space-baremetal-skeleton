@@ -1,10 +1,13 @@
 #ifndef UART_H
 #define UART_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 void uart_putc(char c);
+bool uart_rx_ready(void);
+char uart_getc(void);
 void uart_puts(const char *s);
 
 void uart_put_dec(uint32_t value);
