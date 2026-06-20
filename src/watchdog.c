@@ -45,6 +45,7 @@ void vTaskWatchdog(void *pvParameters) {
 
         if ((received & WATCHDOG_EXPECTED_BITS) != WATCHDOG_EXPECTED_BITS) {
             watchdog_print_missing_bits(received);
+	    system_state_request_change(SYSTEM_STATE_DEGRADED, 0x01);
             for (;;) {
             }
         }

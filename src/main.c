@@ -36,6 +36,7 @@ void vTaskHeartbeat(void *pvParameters) {
 
 int main(void) {
     TaskHandle_t xWatchdogHandle = NULL;
+    TaskHandle_t xStateMachineHandle = NULL;
     TaskHandle_t xHeartbeatHandle = NULL;
     TaskHandle_t xMemScrubHandle = NULL;
     TaskHandle_t xFaultInjectHandle = NULL;
@@ -51,6 +52,8 @@ int main(void) {
 
     create_app_task(vTaskWatchdog, "Watchdog", TASK_STACK_WATCHDOG,
                     TASK_PRIO_WATCHDOG, &xWatchdogHandle);
+    create_app_task(vTaskStateMachine, "StateMachine", TASK_STACK_STATEMACHINE,
+		    TASK_PRIO_STATEMACHINE, &xStateMachineHandle);
     create_app_task(vTaskHeartbeat, "Heartbeat", TASK_STACK_HEARTBEAT,
                     TASK_PRIO_HEARTBEAT, &xHeartbeatHandle);
     create_app_task(vTaskMemoryScrub, "MemScrub", TASK_STACK_MEMSCRUB,

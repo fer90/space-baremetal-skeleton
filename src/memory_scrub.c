@@ -5,6 +5,17 @@ volatile uint8_t scrub_area[SCRUB_SIZE];
 // Keep a golden copy in memory
 static uint8_t golden_copy[SCRUB_SIZE];
 
+#define SEU_THRESHOLD_FOR_DEGRADED 5
+static uint32_t seu_counter = 0;
+
+static void memory_scrub_record_seu(void) {
+    seu_counter++;
+    if (seu_counter >= SEU_THRESHOLD_FOR_DEGRADED) {
+        (void) system_state_request_change(SYSTEM_STATE_DEGRADED, 0x02);
+        seu_counter = 0;
+    }
+}
+
 void memory_scrub_init(volatile uint8_t *area) {
     for (int i = 0; i < SCRUB_SIZE; i++) {
         area[i] = (uint8_t)i;
@@ -43,6 +54,7 @@ bool memory_scrub_fix_event(volatile uint8_t *area, const FaultEvent_t *event) {
     uart_puts(" bit ");
     uart_put_hex(event->bit);
     uart_puts("\r\n");
+    memory_scrub_record_seu();
     return true;
 }
 
@@ -53,6 +65,7 @@ void memory_scrub(volatile uint8_t *area) {
         if (area[i] != golden_copy[i]) {
             area[i] = golden_copy[i];
             errors_corrected++;
+            memory_scrub_record_seu();
         }
     }
 

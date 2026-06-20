@@ -35,6 +35,7 @@ typedef struct {
  * Idle (0):     kernel idle task.
  * -------------------------------------------------------------------------- */
 #define TASK_PRIO_WATCHDOG         4
+#define TASK_PRIO_STATEMACHINE     3
 #define TASK_PRIO_MEMSCRUB         2
 #define TASK_PRIO_HEARTBEAT        1
 #define TASK_PRIO_FAULTINJECT      1
@@ -44,6 +45,7 @@ typedef struct {
  * Task stack depths (FreeRTOS words; ×8 bytes on rv64)
  * -------------------------------------------------------------------------- */
 #define TASK_STACK_WATCHDOG        (configMINIMAL_STACK_SIZE * 2)
+#define TASK_STACK_STATEMACHINE    (configMINIMAL_STACK_SIZE * 2)
 #define TASK_STACK_HEARTBEAT       (configMINIMAL_STACK_SIZE * 2)
 #define TASK_STACK_MEMSCRUB        (configMINIMAL_STACK_SIZE * 3)
 #define TASK_STACK_FAULTINJECT     (configMINIMAL_STACK_SIZE * 2)

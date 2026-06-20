@@ -14,5 +14,7 @@
 #include "fault_queue.h"
 #include "fault_inject.h"
 #include "watchdog.h"
+#include "state_machine.h"
+#include "system_state.h"
 
 #endif /* COMMON_H */
