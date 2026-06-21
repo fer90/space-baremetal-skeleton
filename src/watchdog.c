@@ -28,6 +28,9 @@ void vTaskWatchdog(void *pvParameters) {
     (void) pvParameters;
     xWatchdogTaskHandle = xTaskGetCurrentTaskHandle();
 
+    uint32_t successful_cycles = 0;
+    const uint32_t RECOVERY_THRESHOLD = 5;   // 5 consecutive good cycles to recover
+
     for (;;) {
         uint32_t received = 0;
         const TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(WATCHDOG_TIMEOUT_MS);
@@ -43,10 +46,27 @@ void vTaskWatchdog(void *pvParameters) {
             received |= bits;
         }
 
-        if ((received & WATCHDOG_EXPECTED_BITS) != WATCHDOG_EXPECTED_BITS) {
+	SystemState_t current_state = system_state_get();
+
+        if ((received & WATCHDOG_EXPECTED_BITS) == WATCHDOG_EXPECTED_BITS) {
+	    // All good!
+	    if (current_state == SYSTEM_STATE_DEGRADED) {
+	        successful_cycles++;
+
+		if (successful_cycles >= RECOVERY_THRESHOLD) {
+		    system_state_request_change(SYSTEM_STATE_NOMINAL, 0x03);
+		    successful_cycles = 0;
+		}
+	    } else {
+	        successful_cycles = 0;
+	    }
+	} else {
             watchdog_print_missing_bits(received);
-	    system_state_request_change(SYSTEM_STATE_DEGRADED, 0x01);
-            for (;;) {
+
+	    if (current_state < SYSTEM_STATE_DEGRADED) {
+	        system_state_request_change(SYSTEM_STATE_DEGRADED, 0x01);
+	    } else if (current_state == SYSTEM_STATE_DEGRADED) {
+	        system_state_request_change(SYSTEM_STATE_SAFE, 0x01); // Once in this state, is not recoverable for now
             }
         }
     }
