@@ -21,6 +21,9 @@ void memory_scrub_init(volatile uint8_t *area) {
         area[i] = (uint8_t)i;
         golden_copy[i] = (uint8_t)i;
     }
+
+    memory_protection_add_region((uintptr_t) golden_copy, (uintptr_t) golden_copy + sizeof(golden_copy), MEM_PERM_READ, "GoldenCopy");
+
     uart_puts("Memory scrub initialized (EDAC Simulation)\r\n");
 }
 
