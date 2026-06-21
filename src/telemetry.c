@@ -34,6 +34,14 @@ static void print_heap(void) {
     uart_puts("\r\n");
 }
 
+static void print_memory_protection(void) {
+    uart_puts("mem_prot: violations=");
+    uart_put_dec(memory_protection_get_violation_count());
+    uart_puts(" regions=");
+    uart_put_dec(memory_protection_get_region_count());
+    uart_puts("\r\n");
+}
+
 static void print_isr_stack(void) {
     bool corrupt = isr_stack_guard_check();
 
@@ -116,6 +124,7 @@ void telemetry_print_snapshot(void) {
     uart_puts("=== telemetry ===\r\n");
     print_uptime();
     print_heap();
+    print_memory_protection();
     print_isr_stack();
     print_task_stacks();
     uart_puts("=================\r\n");

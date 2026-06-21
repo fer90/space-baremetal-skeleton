@@ -2,13 +2,47 @@
 
 volatile uint8_t scrub_area[SCRUB_SIZE];
 
-// Keep a golden copy in memory
 static uint8_t golden_copy[SCRUB_SIZE];
 
 #define SEU_THRESHOLD_FOR_DEGRADED 5
 static uint32_t seu_counter = 0;
 
-static void memory_scrub_record_seu(void) {
+static uint8_t golden_read(uint32_t idx)
+{
+    uintptr_t addr = (uintptr_t) &golden_copy[idx];
+
+    if (!memory_protection_check_read(addr, 1)) {
+        return 0;
+    }
+
+    return golden_copy[idx];
+}
+
+static uint8_t scrub_read(volatile uint8_t *area, uint32_t idx)
+{
+    uintptr_t addr = (uintptr_t) &area[idx];
+
+    if (!memory_protection_check_read(addr, 1)) {
+        return 0;
+    }
+
+    return area[idx];
+}
+
+static bool scrub_write(volatile uint8_t *area, uint32_t idx, uint8_t value)
+{
+    uintptr_t addr = (uintptr_t) &area[idx];
+
+    if (!memory_protection_check_write(addr, 1)) {
+        return false;
+    }
+
+    area[idx] = value;
+    return true;
+}
+
+static void memory_scrub_record_seu(void)
+{
     seu_counter++;
     if (seu_counter >= SEU_THRESHOLD_FOR_DEGRADED) {
         (void) system_state_request_change(SYSTEM_STATE_DEGRADED, 0x02);
@@ -16,22 +50,32 @@ static void memory_scrub_record_seu(void) {
     }
 }
 
-void memory_scrub_init(volatile uint8_t *area) {
+void memory_scrub_init(volatile uint8_t *area)
+{
     for (int i = 0; i < SCRUB_SIZE; i++) {
-        area[i] = (uint8_t)i;
-        golden_copy[i] = (uint8_t)i;
+        area[i] = (uint8_t) i;
+        golden_copy[i] = (uint8_t) i;
     }
 
-    memory_protection_add_region((uintptr_t) golden_copy, (uintptr_t) golden_copy + sizeof(golden_copy), MEM_PERM_READ, "GoldenCopy");
+    memory_protection_add_region((uintptr_t) golden_copy,
+                                 (uintptr_t) golden_copy + sizeof(golden_copy),
+                                 MEM_PERM_READ,
+                                 "GoldenCopy");
+    memory_protection_add_region((uintptr_t) area,
+                                 (uintptr_t) area + SCRUB_SIZE,
+                                 MEM_PERM_READ | MEM_PERM_WRITE,
+                                 "ScrubArea");
 
     uart_puts("Memory scrub initialized (EDAC Simulation)\r\n");
 }
 
-bool memory_scrub_fix_event(volatile uint8_t *area, const FaultEvent_t *event) {
+bool memory_scrub_fix_event(volatile uint8_t *area, const FaultEvent_t *event)
+{
     uint32_t idx;
     uint8_t bit_mask;
     uint8_t actual;
     uint8_t expected;
+    uint8_t corrected;
 
     if (event == NULL || event->index >= SCRUB_SIZE || event->bit >= 8) {
         return false;
@@ -39,8 +83,8 @@ bool memory_scrub_fix_event(volatile uint8_t *area, const FaultEvent_t *event) {
 
     idx = event->index;
     bit_mask = (uint8_t) (1u << event->bit);
-    actual = area[idx];
-    expected = golden_copy[idx];
+    actual = scrub_read(area, idx);
+    expected = golden_read(idx);
 
     if ((actual & bit_mask) == (expected & bit_mask)) {
         uart_puts("Memory scrub: targeted check @ byte ");
@@ -51,7 +95,12 @@ bool memory_scrub_fix_event(volatile uint8_t *area, const FaultEvent_t *event) {
         return false;
     }
 
-    area[idx] = (uint8_t) ((actual & ~bit_mask) | (expected & bit_mask));
+    corrected = (uint8_t) ((actual & ~bit_mask) | (expected & bit_mask));
+    if (!scrub_write(area, idx, corrected)) {
+        uart_puts("Memory scrub: write blocked by memory protection\r\n");
+        return false;
+    }
+
     uart_puts("Memory scrub: SEU corrected @ byte ");
     uart_put_hex(idx);
     uart_puts(" bit ");
@@ -61,14 +110,19 @@ bool memory_scrub_fix_event(volatile uint8_t *area, const FaultEvent_t *event) {
     return true;
 }
 
-void memory_scrub(volatile uint8_t *area) {
+void memory_scrub(volatile uint8_t *area)
+{
     uint32_t errors_corrected = 0;
 
     for (int i = 0; i < SCRUB_SIZE; i++) {
-        if (area[i] != golden_copy[i]) {
-            area[i] = golden_copy[i];
-            errors_corrected++;
-            memory_scrub_record_seu();
+        uint8_t current = scrub_read(area, (uint32_t) i);
+        uint8_t expected = golden_read((uint32_t) i);
+
+        if (current != expected) {
+            if (scrub_write(area, (uint32_t) i, expected)) {
+                errors_corrected++;
+                memory_scrub_record_seu();
+            }
         }
     }
 
@@ -79,7 +133,8 @@ void memory_scrub(volatile uint8_t *area) {
     }
 }
 
-void vTaskMemoryScrub(void *pvParameters) {
+void vTaskMemoryScrub(void *pvParameters)
+{
     (void) pvParameters;
     FaultEvent_t event;
     bool had_event;
