@@ -96,7 +96,7 @@ bool memory_scrub_fix_event(volatile uint8_t *area, const FaultEvent_t *event)
 
     corrected = (uint8_t) ((actual & ~bit_mask) | (expected & bit_mask));
     if (!scrub_write(area, idx, corrected)) {
-        uart_puts("Memory scrub: write blocked by memory protection\r\n");
+        uart_puts(LOG_PREFIX_VIOLATION "scrub write blocked by memory protection\r\n");
         return false;
     }
 

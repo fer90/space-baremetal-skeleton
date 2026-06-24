@@ -1,4 +1,5 @@
 #include "interrupt.h"
+#include "log.h"
 #include "uart.h"
 #include "timer.h"
 #include <stdint.h>
@@ -20,11 +21,11 @@ void trap_handler(void) {
             // Machine Timer Interrupt (MTI)
             timer_isr();
         } else {
-            uart_puts("Unhandled interrupt\r\n");
+            uart_puts(LOG_PREFIX_ERROR "unhandled interrupt\r\n");
         }
     } else {
         // Synchronous exception — halt
-        uart_puts("EXCEPTION — system halted\r\n");
+        uart_puts(LOG_PREFIX_ERROR "exception — system halted\r\n");
         while (1) {
             asm volatile("wfi");
         }

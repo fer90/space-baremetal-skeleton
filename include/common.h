@@ -6,6 +6,7 @@
 #include "task.h"
 #include "system_defs.h"
 #include "uart.h"
+#include "log.h"
 #include "memory_protection.h"
 #include "memory_scrub.h"
 #include "critical_exec.h"

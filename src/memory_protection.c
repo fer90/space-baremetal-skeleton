@@ -29,14 +29,13 @@ static void report_violation(uintptr_t address,
                              const char *access_type,
                              const memory_region_t *region)
 {
-    uart_puts("!!! MEMORY PROTECTION VIOLATION !!!\r\n");
-    uart_puts("  Region : ");
+    uart_puts(LOG_PREFIX_VIOLATION "region=");
     uart_puts(region->name);
-    uart_puts("\r\n  Access : ");
+    uart_puts(" access=");
     uart_puts(access_type);
-    uart_puts("\r\n  Address: 0x");
+    uart_puts(" addr=0x");
     uart_put_hex((uint32_t) address);
-    uart_puts("  Size: ");
+    uart_puts(" size=");
     uart_put_dec((uint32_t) size);
     uart_puts("\r\n");
 
@@ -89,7 +88,7 @@ void memory_protection_init(void)
 void memory_protection_add_region(uintptr_t start, uintptr_t end, mem_perm_t perms, const char *name)
 {
     if (region_count >= MAX_PROTECTED_REGIONS) {
-        uart_puts("Memory Protection: Region table full!\r\n");
+        uart_puts(LOG_PREFIX_ERROR "memory protection region table full\r\n");
         return;
     }
 

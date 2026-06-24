@@ -8,9 +8,10 @@ Runs on QEMU `virt` with no BIOS — UART console only.
 
 This skeleton explores core ideas from dependability and computer architecture:
 
-- **FDIR** (Fault Detection, Isolation, Recovery): software watchdog, SEU injection, and memory scrub
-- **Radiation-aware memory**: golden-copy EDAC simulation with targeted bit correction
-- **Determinism & observability**: fixed-priority tasks, bounded queues, DEBUG telemetry with stack high-water marks
+- **FDIR** (Fault Detection, Isolation, Recovery): software watchdog, SEU injection, memory scrub, and a graded system-state machine
+- **Radiation-aware memory**: immutable golden copy in `.rodata`, mutable scrub buffer with targeted bit correction
+- **Software memory protection**: instrumented read/write/exec checks with violation counting
+- **Determinism & observability**: fixed-priority tasks, bounded queues, prefixed UART logging, DEBUG telemetry with stack high-water marks
 - **Resource discipline**: separate ISR stack, heap-budgeted task stacks, boot-time failure checks
 
 ## Architecture
@@ -19,25 +20,34 @@ This skeleton explores core ideas from dependability and computer architecture:
 flowchart TB
     subgraph boot [Boot]
         startup["startup.s — BSS zero, 4 KB ISR stack"]
-        main["main() — create tasks, start scheduler"]
+        main["main() — init IPC, mem prot, tasks_create_all()"]
     end
 
     subgraph tasks [FreeRTOS tasks]
         WD["Watchdog (prio 4)"]
+        SM["StateMachine (prio 3)"]
         MS["MemScrub (prio 2)"]
+        CH["CommandHandler (prio 2)"]
         HB["Heartbeat (prio 1)"]
         FI["FaultInject (prio 1)"]
+        CI["CommandInput (prio 1)"]
         TE["Telemetry (prio 1, DEBUG only)"]
     end
 
     subgraph ipc [IPC]
         FQ["xFaultQueue — FaultEvent_t"]
+        SQ["xStateRequestQueue — StateRequest_t"]
+        CQ["xCommandQueue — CommandType_t"]
     end
 
     startup --> main
     main --> tasks
     FI -->|"index + bit"| FQ
     FQ --> MS
+    WD & MS & FI & SM -->|"state requests"| SQ
+    SQ --> SM
+    CI -->|"UART keys"| CQ
+    CQ --> CH
     HB & MS & FI -->|"task notify bits"| WD
 ```
 
@@ -47,26 +57,48 @@ flowchart TB
 |--------|----------|------|---------|
 | ISR / trap stack | Static `.bss` in `startup.s` | 4 KB | Machine-mode traps, pre-scheduler boot |
 | Task stacks | FreeRTOS heap (`heap_4`) | Per-task | Application task context |
-| FreeRTOS heap | `ucHeap` | 32 KB | TCBs, stacks, fault queue, timer task |
-| Scrub buffers | Static `.bss` | 512 B × 2 | `scrub_area` + `golden_copy` |
+| FreeRTOS heap | `ucHeap` | 32 KB | TCBs, stacks, queues, timer task |
+| `golden_copy` | Static `.rodata` | 512 B | Immutable reference pattern (`0..255` × 2) |
+| `scrub_area` | Static `.bss` | 512 B | Mutable buffer under software MPU |
 
-Task stack depths and priorities live in `include/system_defs.h`.
+Task stack depths and priorities live in `include/system_defs.h`. All application tasks are declared in a single `task_configs[]` table in `src/tasks.c`.
 
 ## Application tasks
 
 | Task | Priority | Period | Role |
 |------|----------|--------|------|
-| **Watchdog** | 4 | — | Waits for notification bits from all monitored tasks; halts on timeout (3.5 s) |
-| **MemScrub** | 2 | 800 ms | Background full-array scrub, or **targeted bit fix** on fault events |
+| **Watchdog** | 4 | 3.5 s window | Collects notification bits from monitored tasks; escalates state on timeout; recovers to NOMINAL after 5 good cycles in DEGRADED |
+| **StateMachine** | 3 | event-driven | Applies state transitions from `xStateRequestQueue` (monotonic: only equal or higher states) |
+| **MemScrub** | 2 | 800 ms | Targeted bit fix on fault events, or full-array background scrub |
+| **CommandHandler** | 2 | blocking | Executes UART commands dequeued from `xCommandQueue` |
 | **Heartbeat** | 1 | 1 s | Liveness indicator + watchdog kick |
-| **FaultInject** | 1 | 3 s | Flips a random bit in `scrub_area`, queues `FaultEvent_t` to MemScrub |
-| **Telemetry** | 1 | 15 s | DEBUG-only snapshot: uptime, heap, ISR stack guard, task stack HWM |
+| **FaultInject** | 1 | 3 s | Periodic SEU simulation (toggleable); queues `FaultEvent_t` to MemScrub |
+| **CommandInput** | 1 | 10 ms poll | Reads UART, dispatches single-key commands to the handler queue |
+| **Telemetry** | 1 | 15 s | DEBUG-only periodic snapshot |
 
 Kernel tasks (**Idle**, **TmrSvc**) are included in DEBUG telemetry stack reporting.
+
+### System state machine
+
+States: **BOOT** → **NOMINAL** → **DEGRADED** → **SAFE** (monotonic escalation via the state machine task).
+
+| Trigger | New state | Reason code |
+|---------|-----------|-------------|
+| Boot init | BOOT → NOMINAL | (state machine startup) |
+| Watchdog timeout (first) | DEGRADED | `0x01` |
+| Watchdog timeout (already DEGRADED) | SAFE | `0x01` |
+| 5 SEUs corrected (rolling window) | DEGRADED | `0x02` |
+| 5 successful watchdog cycles in DEGRADED | NOMINAL | `0x03` |
+| 3 memory-protection violations | DEGRADED | `0x04` |
+| UART `n` / `d` | NOMINAL / DEGRADED | `0x10` |
+
+State changes are logged with the `[STATE]` prefix.
 
 ### Watchdog
 
 Each monitored task kicks the watchdog via `xTaskNotify` with a dedicated bit (`WATCHDOG_BIT_*` in `system_defs.h`). The watchdog blocks until all expected bits arrive within `WATCHDOG_TIMEOUT_MS` (3500 ms — longer than the 3 s fault-inject period).
+
+The kick path runs through `watchdog_kick_impl()` in `.text.critical`; `watchdog_kick()` verifies exec permission before calling it.
 
 ### Memory scrub & fault injection
 
@@ -74,6 +106,53 @@ Each monitored task kicks the watchdog via `xTaskNotify` with a dedicated bit (`
 2. It posts `{ index, bit }` on `xFaultQueue` (depth 5)
 3. **MemScrub** drains the queue and calls `memory_scrub_fix_event()` — compares only that bit against `golden_copy` and restores it without scanning the full array
 4. On cycles with no queued events, MemScrub runs a periodic full-array background scrub
+5. Automatic injection can be disabled at runtime with the `x` UART command; manual `f` still works
+
+### Software memory protection
+
+A lightweight software MPU tracks protected regions and checks instrumented accesses:
+
+- `memory_protection_check_access(addr, size, MEM_PERM_READ | WRITE | EXEC)`
+- **ScrubArea** — read/write for `scrub_area`
+- **CriticalText** — read/exec for `.text.critical` (watchdog kick implementation)
+
+Violations are logged with `[VIOLATION]`, counted, and trigger DEGRADED at 3 hits. Scrub read/write paths and watchdog kicks go through the checker.
+
+### UART commands
+
+`CommandInput` polls the console; `CommandHandler` executes queued commands. In QEMU `-nographic`, type directly in the terminal (use **Ctrl+A** then **c** if you need to return to the QEMU monitor).
+
+| Key | Action |
+|-----|--------|
+| `s` | Print DEBUG telemetry snapshot (`[TELEMETRY]` block) |
+| `n` | Request NOMINAL state |
+| `d` | Request DEGRADED state |
+| `f` | Inject one fault immediately |
+| `r` | Force a full memory scrub |
+| `v` | Print memory-protection violation count |
+| `u` | Print cumulative SEU count |
+| `x` | Toggle automatic fault injection on/off |
+| `h` | Show help (`?` also works) |
+
+All command messages use the `[CMD]` prefix.
+
+### Logging
+
+UART output uses consistent prefixes defined in `include/log.h`:
+
+| Prefix | Use |
+|--------|-----|
+| `[ERROR]` | Fatal halt, stack overflow, watchdog timeout, exceptions |
+| `[STATE]` | System state announcements and transitions |
+| `[VIOLATION]` | Memory-protection violations and blocked accesses |
+| `[CMD]` | Command input, help, and command responses |
+| `[TELEMETRY]` | DEBUG telemetry snapshot lines |
+
+Fatal boot failures call `system_halt(reason)`:
+
+```
+[ERROR] System halted: xTaskCreate failed
+```
 
 ### DEBUG telemetry
 
@@ -85,19 +164,20 @@ Build with `make debug` to enable:
 Example output:
 
 ```
-=== telemetry ===
-uptime_s=15
-heap: free=17520 min_ever=17520
-isr_stack: ok hwm_bytes=0
-task stacks HWM (words):
-  Watchdog: alloc=256 free=207 peak=49
-  Heartbeat: alloc=256 free=219 peak=37
-  MemScrub: alloc=384 free=341 peak=43
-  FaultInject: alloc=256 free=211 peak=45
-  Telemetry: alloc=256 free=209 peak=47
-  Idle: alloc=128 free=85 peak=43
-  TmrSvc: alloc=128 free=81 peak=47
-=================
+[TELEMETRY] === snapshot ===
+[TELEMETRY] uptime_s=15
+[TELEMETRY] heap: free=17520 min_ever=17520
+[TELEMETRY] mem_prot: violations=0 regions=2
+[TELEMETRY] isr_stack: ok hwm_bytes=0
+[TELEMETRY] task stacks HWM (words):
+[TELEMETRY]   Watchdog: alloc=256 free=207 peak=49
+[TELEMETRY]   Heartbeat: alloc=256 free=219 peak=37
+[TELEMETRY]   MemScrub: alloc=384 free=341 peak=43
+[TELEMETRY]   FaultInject: alloc=256 free=211 peak=45
+[TELEMETRY]   Telemetry: alloc=256 free=209 peak=47
+[TELEMETRY]   Idle: alloc=128 free=85 peak=43
+[TELEMETRY]   TmrSvc: alloc=128 free=81 peak=47
+[TELEMETRY] ================
 ```
 
 On rv64, multiply word counts by 8 for bytes. Use `peak` values (plus margin) to right-size stacks before shrinking allocations.
@@ -106,21 +186,34 @@ On rv64, multiply word counts by 8 for bytes. Use `peak` values (plus margin) to
 
 ```
 include/
-  system_defs.h    # FaultEvent_t, watchdog bits, task priorities & stack sizes
-  FreeRTOSConfig.h # Kernel config (32 KB heap, stack overflow check method 2)
-  common.h         # Shared includes for application code
+  system_defs.h       # FaultEvent_t, watchdog bits, task priorities & stack sizes
+  system_state.h      # SystemState_t, state request queue API
+  memory_protection.h # Software MPU regions and access checks
+  critical_exec.h     # CRITICAL_TEXT section attribute
+  command.h           # UART command types and task declarations
+  log.h               # UART log prefixes
+  FreeRTOSConfig.h    # Kernel config (32 KB heap, stack overflow check method 2)
+  common.h            # Shared includes for application code
 src/
-  startup.s          # Reset vector, BSS init, ISR stack
-  main.c             # Task creation, scheduler start
-  watchdog.c         # Notification-based watchdog task
-  memory_scrub.c     # Golden-copy scrub + targeted event fix
-  fault_inject.c     # SEU simulation
-  fault_queue.c      # FreeRTOS queue between inject and scrub
-  telemetry.c        # DEBUG periodic reporter
-  isr_stack_guard.c  # DEBUG ISR stack paint/check
-  uart.c             # MMIO UART (QEMU virt console)
-FreeRTOS/            # Vendored FreeRTOS sources (RISC-V GCC port, heap_4)
-linker.ld            # Loads at 0x80000000 (QEMU kernel region)
+  startup.s           # Reset vector, BSS init, ISR stack
+  main.c              # Boot init, scheduler start
+  tasks.c             # task_configs[] table, tasks_create_all()
+  watchdog.c          # Notification-based watchdog + recovery
+  state_machine.c     # State transition task
+  system_state.c      # State request queue
+  memory_scrub.c      # Scrub logic + scrub_area buffer
+  golden_copy.c       # const golden reference in .rodata
+  memory_protection.c # Software MPU implementation
+  critical_exec.c     # Registers .text.critical with mem protection
+  fault_inject.c      # SEU simulation (toggleable)
+  fault_queue.c       # FreeRTOS queue between inject and scrub
+  command.c           # UART input + command handler tasks
+  telemetry.c         # DEBUG periodic reporter
+  isr_stack_guard.c   # DEBUG ISR stack paint/check
+  system.c            # system_halt()
+  uart.c              # MMIO UART (QEMU virt console)
+FreeRTOS/             # Vendored FreeRTOS sources (RISC-V GCC port, heap_4)
+linker.ld             # Loads at 0x80000000; .text.critical section
 ```
 
 ## Build & run
@@ -152,24 +245,32 @@ Or equivalently: `make clean && DEBUG=1 make && make qemu`
 
 ### Error handling
 
-Boot checks `fault_queue_init()` and every `xTaskCreate()`. Failures call `system_halt()` and print a message on UART — the system does not start with a partially initialized task set.
+Boot checks `fault_queue_init()` and every `xTaskCreate()`. Failures call `system_halt()` — the system does not start with a partially initialized task set:
+
+```
+[ERROR] System halted: fault_queue_init failed
+```
+
+Stack overflows are caught by `configCHECK_FOR_STACK_OVERFLOW` and reported as `[ERROR] STACK OVERFLOW in task: ...`.
 
 ## Configuration highlights
 
 | Setting | Value | Notes |
 |---------|-------|-------|
 | `configCPU_CLOCK_HZ` | 10 MHz | Matches QEMU virt `mtime` |
-| `configTOTAL_HEAP_SIZE` | 32 KB | Task stacks + idle + timer + fault queue |
+| `configTOTAL_HEAP_SIZE` | 32 KB | Task stacks + idle + timer + IPC queues |
 | `configCHECK_FOR_STACK_OVERFLOW` | 2 | Canary check on context switch |
 | `INCLUDE_uxTaskGetStackHighWaterMark` | 1 | Used by DEBUG telemetry |
 
-## QEMU command
+## QEMU
 
 The Makefile runs:
 
 ```bash
 qemu-system-riscv64 -machine virt -cpu rv64 -nographic -kernel kernel.bin -bios none
 ```
+
+With `-nographic`, the UART is wired to stdio. Press **Ctrl+A** then **c** to switch to the QEMU monitor; **Ctrl+A** then **x** to quit.
 
 ## License
 

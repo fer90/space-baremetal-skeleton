@@ -13,7 +13,7 @@ static void CRITICAL_TEXT watchdog_kick_impl(uint32_t taskBit)
 void watchdog_kick(uint32_t taskBit)
 {
     if (!memory_protection_check_access((uintptr_t) watchdog_kick_impl, 1, MEM_PERM_EXEC)) {
-        uart_puts("Watchdog kick blocked by memory protection\r\n");
+        uart_puts(LOG_PREFIX_VIOLATION "watchdog kick blocked by memory protection\r\n");
         return;
     }
 
@@ -24,7 +24,7 @@ static void watchdog_print_missing_bits(uint32_t received)
 {
     uint32_t missing = WATCHDOG_EXPECTED_BITS & ~received;
 
-    uart_puts("WATCHDOG TIMEOUT - missing:");
+    uart_puts(LOG_PREFIX_ERROR "WATCHDOG TIMEOUT missing:");
     if (missing & WATCHDOG_BIT_HEARTBEAT) {
         uart_puts(" Heartbeat");
     }

@@ -10,7 +10,7 @@ void vTaskStateMachine(void *pvParameters) {
     system_state_init();
 
     gSystemState = SYSTEM_STATE_NOMINAL;
-    uart_puts("System State: NOMINAL\r\n");
+    uart_puts(LOG_PREFIX_STATE "NOMINAL\r\n");
 
     for (;;) {
         if (xQueueReceive(xStateRequestQueue, &request, pdMS_TO_TICKS(1000)) == pdPASS) {
@@ -18,7 +18,7 @@ void vTaskStateMachine(void *pvParameters) {
                 if (gSystemState != request.requested_state) {
                     gSystemState = request.requested_state;
 
-                    uart_puts("System State changed to: ");
+                    uart_puts(LOG_PREFIX_STATE "changed to ");
                     switch (gSystemState) {
                         case SYSTEM_STATE_NOMINAL:
                             uart_puts("NOMINAL\r\n");

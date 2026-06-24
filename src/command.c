@@ -19,16 +19,16 @@ BaseType_t command_send(CommandType_t cmd)
 
 static void command_print_help(void)
 {
-    uart_puts("Commands:\r\n");
-    uart_puts("  s  status (DEBUG telemetry snapshot)\r\n");
-    uart_puts("  n  request NOMINAL state\r\n");
-    uart_puts("  d  request DEGRADED state\r\n");
-    uart_puts("  f  inject one fault now\r\n");
-    uart_puts("  r  force full memory scrub\r\n");
-    uart_puts("  v  print memory protection violation count\r\n");
-    uart_puts("  u  print SEU count\r\n");
-    uart_puts("  x  toggle automatic fault injection\r\n");
-    uart_puts("  h  show this help\r\n");
+    uart_puts(LOG_PREFIX_CMD "Commands:\r\n");
+    uart_puts(LOG_PREFIX_CMD "  s  status (DEBUG telemetry snapshot)\r\n");
+    uart_puts(LOG_PREFIX_CMD "  n  request NOMINAL state\r\n");
+    uart_puts(LOG_PREFIX_CMD "  d  request DEGRADED state\r\n");
+    uart_puts(LOG_PREFIX_CMD "  f  inject one fault now\r\n");
+    uart_puts(LOG_PREFIX_CMD "  r  force full memory scrub\r\n");
+    uart_puts(LOG_PREFIX_CMD "  v  print memory protection violation count\r\n");
+    uart_puts(LOG_PREFIX_CMD "  u  print SEU count\r\n");
+    uart_puts(LOG_PREFIX_CMD "  x  toggle automatic fault injection\r\n");
+    uart_puts(LOG_PREFIX_CMD "  h  show this help\r\n");
 }
 
 static bool command_dispatch_char(char c)
@@ -71,7 +71,7 @@ static bool command_dispatch_char(char c)
 
     sent = command_send(cmd);
     if (sent != pdPASS) {
-        uart_puts("CMD: queue full\r\n");
+        uart_puts(LOG_PREFIX_CMD "queue full\r\n");
     }
     return true;
 }
@@ -80,7 +80,7 @@ void vTaskCommandInput(void *pvParameters)
 {
     (void) pvParameters;
 
-    uart_puts("Command input ready (h for help)\r\n");
+    uart_puts(LOG_PREFIX_CMD "input ready (h for help)\r\n");
 
     for (;;) {
         if (uart_rx_ready()) {
@@ -91,7 +91,7 @@ void vTaskCommandInput(void *pvParameters)
             }
 
             if (!command_dispatch_char(c)) {
-                uart_puts("CMD: unknown key '");
+                uart_puts(LOG_PREFIX_CMD "unknown key '");
                 uart_putc(c);
                 uart_puts("' (h for help)\r\n");
             }
@@ -116,7 +116,7 @@ void vTaskCommandHandler(void *pvParameters)
 #ifdef DEBUG
                     telemetry_print_snapshot();
 #else
-                    uart_puts("CMD_STATUS: telemetry requires DEBUG build\r\n");
+                    uart_puts(LOG_PREFIX_CMD "telemetry requires DEBUG build\r\n");
 #endif
                     break;
 
@@ -137,25 +137,25 @@ void vTaskCommandHandler(void *pvParameters)
                     break;
 
                 case CMD_PRINT_VIOLATIONS:
-                    uart_puts("mem_prot violations: ");
+                    uart_puts(LOG_PREFIX_CMD "mem_prot violations: ");
                     uart_put_dec(memory_protection_get_violation_count());
                     uart_puts("\r\n");
                     break;
 
                 case CMD_PRINT_SEU_COUNT:
-                    uart_puts("SEU count: ");
+                    uart_puts(LOG_PREFIX_CMD "SEU count: ");
                     uart_put_dec(memory_scrub_get_seu_count());
                     uart_puts("\r\n");
                     break;
 
                 case CMD_TOGGLE_FAULT_INJECT:
                     fault_inject_set_enabled(!fault_inject_is_enabled());
-                    uart_puts("Fault injection: ");
+                    uart_puts(LOG_PREFIX_CMD "fault injection: ");
                     uart_puts(fault_inject_is_enabled() ? "ON\r\n" : "OFF\r\n");
                     break;
 
                 default:
-                    uart_puts("CMD: unknown command\r\n");
+                    uart_puts(LOG_PREFIX_CMD "unknown command\r\n");
                     break;
             }
         }

@@ -27,7 +27,7 @@ FREERTOS_SRC = \
     FreeRTOS/Source/portable/GCC/RISC-V/portASM.S
 
 # Sources - startup first for link order
-CSRC = src/main.c src/system.c src/system_state.c src/state_machine.c src/critical_exec.c \
+CSRC = src/main.c src/tasks.c src/system.c src/system_state.c src/state_machine.c src/critical_exec.c \
        src/command.c src/uart.c \
        src/string.c src/watchdog.c src/memory_protection.c src/golden_copy.c src/memory_scrub.c src/fault_inject.c src/fault_queue.c \
        src/isr_stack_guard.c src/telemetry.c src/timer.c src/interrupt.c \

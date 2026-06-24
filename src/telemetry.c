@@ -21,13 +21,13 @@ static bool kernel_tasks_registered = false;
 static void print_uptime(void) {
     uint32_t uptime_s = (uint32_t) (xTaskGetTickCount() / configTICK_RATE_HZ);
 
-    uart_puts("uptime_s=");
+    uart_puts(LOG_PREFIX_TELEMETRY "uptime_s=");
     uart_put_dec(uptime_s);
     uart_puts("\r\n");
 }
 
 static void print_heap(void) {
-    uart_puts("heap: free=");
+    uart_puts(LOG_PREFIX_TELEMETRY "heap: free=");
     uart_put_dec((uint32_t) xPortGetFreeHeapSize());
     uart_puts(" min_ever=");
     uart_put_dec((uint32_t) xPortGetMinimumEverFreeHeapSize());
@@ -35,7 +35,7 @@ static void print_heap(void) {
 }
 
 static void print_memory_protection(void) {
-    uart_puts("mem_prot: violations=");
+    uart_puts(LOG_PREFIX_TELEMETRY "mem_prot: violations=");
     uart_put_dec(memory_protection_get_violation_count());
     uart_puts(" regions=");
     uart_put_dec(memory_protection_get_region_count());
@@ -45,7 +45,7 @@ static void print_memory_protection(void) {
 static void print_isr_stack(void) {
     bool corrupt = isr_stack_guard_check();
 
-    uart_puts("isr_stack: ");
+    uart_puts(LOG_PREFIX_TELEMETRY "isr_stack: ");
     uart_puts(corrupt ? "CORRUPT" : "ok");
     uart_puts(" hwm_bytes=");
     uart_put_dec(isr_stack_guard_get_hwm_bytes());
@@ -64,7 +64,7 @@ static void print_task_line(telemetry_task_entry_t *entry) {
         entry->min_free_words = free_words;
     }
 
-    uart_puts("  ");
+    uart_puts(LOG_PREFIX_TELEMETRY "  ");
     uart_puts(entry->name);
     uart_puts(": alloc=");
     uart_put_dec((uint32_t) entry->allocated_words);
@@ -76,7 +76,7 @@ static void print_task_line(telemetry_task_entry_t *entry) {
 }
 
 static void print_task_stacks(void) {
-    uart_puts("task stacks HWM (words):\r\n");
+    uart_puts(LOG_PREFIX_TELEMETRY "task stacks HWM (words):\r\n");
 
     for (size_t i = 0; i < task_entry_count; i++) {
         print_task_line(&task_entries[i]);
@@ -87,7 +87,7 @@ void telemetry_register_task(TaskHandle_t handle,
                              const char *name,
                              configSTACK_DEPTH_TYPE allocated_words) {
     if (task_entry_count >= TELEMETRY_MAX_TASKS) {
-        uart_puts("telemetry_register_task: table full\r\n");
+        uart_puts(LOG_PREFIX_ERROR "telemetry task table full\r\n");
         return;
     }
 
@@ -121,13 +121,13 @@ void telemetry_register_kernel_tasks(void) {
 
 void telemetry_print_snapshot(void) {
     taskENTER_CRITICAL();
-    uart_puts("=== telemetry ===\r\n");
+    uart_puts(LOG_PREFIX_TELEMETRY "=== snapshot ===\r\n");
     print_uptime();
     print_heap();
     print_memory_protection();
     print_isr_stack();
     print_task_stacks();
-    uart_puts("=================\r\n");
+    uart_puts(LOG_PREFIX_TELEMETRY "================\r\n");
     taskEXIT_CRITICAL();
 }
 

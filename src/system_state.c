@@ -8,7 +8,7 @@ void system_state_init(void)
 {
     xStateRequestQueue = xQueueCreate(4, sizeof(StateRequest_t));
     gSystemState = SYSTEM_STATE_BOOT;
-    uart_puts("System State: BOOT\r\n");
+    uart_puts(LOG_PREFIX_STATE "BOOT\r\n");
 }
 
 SystemState_t system_state_get(void)
