@@ -43,9 +43,25 @@ static void report_violation(uintptr_t address,
     record_violation();
 }
 
-static bool memory_protection_check(uintptr_t address, size_t size, mem_perm_t required_perm)
+static const char *access_type_name(mem_perm_t access)
 {
-    const char *access_type = (required_perm == MEM_PERM_WRITE) ? "WRITE" : "READ";
+    if (access == MEM_PERM_WRITE) {
+        return "WRITE";
+    }
+    if (access == MEM_PERM_EXEC) {
+        return "EXEC";
+    }
+    if (access == MEM_PERM_READ) {
+        return "READ";
+    }
+    return "ACCESS";
+}
+
+bool memory_protection_check_access(uintptr_t address, size_t size, mem_perm_t access)
+{
+    if (access == MEM_PERM_NONE) {
+        return true;
+    }
 
     for (uint8_t i = 0; i < region_count; i++) {
         const memory_region_t *region = &protected_regions[i];
@@ -54,8 +70,8 @@ static bool memory_protection_check(uintptr_t address, size_t size, mem_perm_t r
             continue;
         }
 
-        if ((region->permissions & required_perm) == 0) {
-            report_violation(address, size, access_type, region);
+        if ((region->permissions & access) != access) {
+            report_violation(address, size, access_type_name(access), region);
             return false;
         }
     }
@@ -82,16 +98,6 @@ void memory_protection_add_region(uintptr_t start, uintptr_t end, mem_perm_t per
     protected_regions[region_count].permissions = perms;
     protected_regions[region_count].name = name;
     region_count++;
-}
-
-bool memory_protection_check_read(uintptr_t address, size_t size)
-{
-    return memory_protection_check(address, size, MEM_PERM_READ);
-}
-
-bool memory_protection_check_write(uintptr_t address, size_t size)
-{
-    return memory_protection_check(address, size, MEM_PERM_WRITE);
 }
 
 uint32_t memory_protection_get_violation_count(void)

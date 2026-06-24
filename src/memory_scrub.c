@@ -11,7 +11,7 @@ static uint8_t golden_read(uint32_t idx)
 {
     uintptr_t addr = (uintptr_t) &golden_copy[idx];
 
-    if (!memory_protection_check_read(addr, 1)) {
+    if (!memory_protection_check_access(addr, 1, MEM_PERM_READ)) {
         return 0;
     }
 
@@ -22,7 +22,7 @@ static uint8_t scrub_read(volatile uint8_t *area, uint32_t idx)
 {
     uintptr_t addr = (uintptr_t) &area[idx];
 
-    if (!memory_protection_check_read(addr, 1)) {
+    if (!memory_protection_check_access(addr, 1, MEM_PERM_READ)) {
         return 0;
     }
 
@@ -33,7 +33,7 @@ static bool scrub_write(volatile uint8_t *area, uint32_t idx, uint8_t value)
 {
     uintptr_t addr = (uintptr_t) &area[idx];
 
-    if (!memory_protection_check_write(addr, 1)) {
+    if (!memory_protection_check_access(addr, 1, MEM_PERM_WRITE)) {
         return false;
     }
 
