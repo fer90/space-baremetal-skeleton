@@ -13,6 +13,7 @@ static void CRITICAL_TEXT watchdog_kick_impl(uint32_t taskBit)
 void watchdog_kick(uint32_t taskBit)
 {
     if (!memory_protection_check_access((uintptr_t) watchdog_kick_impl, 1, MEM_PERM_EXEC)) {
+        uart_puts("Watchdog kick blocked by memory protection\r\n");
         return;
     }
 
