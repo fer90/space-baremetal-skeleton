@@ -10,6 +10,9 @@ typedef enum {
     CMD_GO_DEGRADED,
     CMD_INJECT_FAULT,
     CMD_FORCE_SCRUB,
+    CMD_PRINT_VIOLATIONS,
+    CMD_PRINT_SEU_COUNT,
+    CMD_TOGGLE_FAULT_INJECT,
 } CommandType_t;
 
 extern QueueHandle_t xCommandQueue;

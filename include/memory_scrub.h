@@ -13,6 +13,7 @@ extern const uint8_t golden_copy[SCRUB_SIZE];
 void memory_scrub_init(volatile uint8_t *area);
 void memory_scrub(volatile uint8_t *area);
 bool memory_scrub_fix_event(volatile uint8_t *area, const FaultEvent_t *event);
+uint32_t memory_scrub_get_seu_count(void);
 void vTaskMemoryScrub(void *pvParameters);
 
 #endif /* MEMORY_SCRUB_H */

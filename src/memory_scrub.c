@@ -4,6 +4,7 @@ volatile uint8_t scrub_area[SCRUB_SIZE];
 
 #define SEU_THRESHOLD_FOR_DEGRADED 5
 static uint32_t seu_counter = 0;
+static uint32_t seu_total_count = 0;
 
 static uint8_t golden_read(uint32_t idx)
 {
@@ -35,11 +36,17 @@ static bool scrub_write(volatile uint8_t *area, uint32_t idx, uint8_t value)
 
 static void memory_scrub_record_seu(void)
 {
+    seu_total_count++;
     seu_counter++;
     if (seu_counter >= SEU_THRESHOLD_FOR_DEGRADED) {
         (void) system_state_request_change(SYSTEM_STATE_DEGRADED, 0x02);
         seu_counter = 0;
     }
+}
+
+uint32_t memory_scrub_get_seu_count(void)
+{
+    return seu_total_count;
 }
 
 static void memory_scrub_protect_buffers(volatile uint8_t *area)

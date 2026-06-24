@@ -1,7 +1,20 @@
 #include "common.h"
 
+static volatile bool fault_inject_enabled = true;
+
 void fault_inject_init(void) {
     uart_puts("Fault injection initialized (SEU simulation)\r\n");
+}
+
+bool fault_inject_is_enabled(void)
+{
+    return fault_inject_enabled;
+}
+
+bool fault_inject_set_enabled(bool enabled)
+{
+    fault_inject_enabled = enabled;
+    return fault_inject_enabled;
 }
 
 void inject_random_fault(volatile uint8_t *area) {
@@ -38,6 +51,8 @@ void vTaskFaultInject(void *pvParameters) {
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(3000));
         watchdog_kick(WATCHDOG_BIT_FAULTINJECT);
-        inject_random_fault(scrub_area);
+        if (fault_inject_enabled) {
+            inject_random_fault(scrub_area);
+        }
     }
 }
