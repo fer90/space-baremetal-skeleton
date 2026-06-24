@@ -50,6 +50,18 @@ static void memory_scrub_record_seu(void)
     }
 }
 
+static void memory_scrub_protect_buffers(volatile uint8_t *area)
+{
+    memory_protection_protect_region((uintptr_t) golden_copy,
+                                     (uintptr_t) golden_copy + sizeof(golden_copy),
+                                     MEM_PERM_READ,
+                                     "GoldenCopy");
+    memory_protection_protect_region((uintptr_t) area,
+                                     (uintptr_t) area + SCRUB_SIZE,
+                                     MEM_PERM_READ | MEM_PERM_WRITE,
+                                     "ScrubArea");
+}
+
 void memory_scrub_init(volatile uint8_t *area)
 {
     for (int i = 0; i < SCRUB_SIZE; i++) {
@@ -57,14 +69,7 @@ void memory_scrub_init(volatile uint8_t *area)
         golden_copy[i] = (uint8_t) i;
     }
 
-    memory_protection_add_region((uintptr_t) golden_copy,
-                                 (uintptr_t) golden_copy + sizeof(golden_copy),
-                                 MEM_PERM_READ,
-                                 "GoldenCopy");
-    memory_protection_add_region((uintptr_t) area,
-                                 (uintptr_t) area + SCRUB_SIZE,
-                                 MEM_PERM_READ | MEM_PERM_WRITE,
-                                 "ScrubArea");
+    memory_scrub_protect_buffers(area);
 
     uart_puts("Memory scrub initialized (EDAC Simulation)\r\n");
 }

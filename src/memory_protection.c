@@ -100,6 +100,14 @@ void memory_protection_add_region(uintptr_t start, uintptr_t end, mem_perm_t per
     region_count++;
 }
 
+void memory_protection_protect_region(uintptr_t start, uintptr_t end, mem_perm_t perms, const char *name)
+{
+    memory_protection_add_region(start, end, perms, name);
+    uart_puts("Memory Protection: locked ");
+    uart_puts(name);
+    uart_puts("\r\n");
+}
+
 uint32_t memory_protection_get_violation_count(void)
 {
     return violation_count;

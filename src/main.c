@@ -51,6 +51,7 @@ int main(void) {
 
     command_init();
     memory_protection_init();
+    memory_protection_register_critical_text();
     uart_puts("\r\n=== FreeRTOS Migration Started ===\r\n");
 
     create_app_task(vTaskWatchdog, "Watchdog", TASK_STACK_WATCHDOG,

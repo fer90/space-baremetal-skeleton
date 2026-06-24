@@ -21,6 +21,7 @@ typedef struct {
 
 void memory_protection_init(void);
 void memory_protection_add_region(uintptr_t start, uintptr_t end, mem_perm_t perms, const char *name);
+void memory_protection_protect_region(uintptr_t start, uintptr_t end, mem_perm_t perms, const char *name);
 bool memory_protection_check_access(uintptr_t address, size_t size, mem_perm_t access);
 uint32_t memory_protection_get_violation_count(void);
 uint8_t memory_protection_get_region_count(void);

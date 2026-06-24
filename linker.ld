@@ -10,7 +10,11 @@ SECTIONS
     }
 
     .text : {
-        *(.text*)
+        __critical_text_start = .;
+        *(.text.critical .text.critical.*)
+        __critical_text_end = .;
+        *(.text .text.*)
+        *(.gnu.linkonce.t*)
     }
 
     .rodata : {
