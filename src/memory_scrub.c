@@ -2,19 +2,11 @@
 
 volatile uint8_t scrub_area[SCRUB_SIZE];
 
-static uint8_t golden_copy[SCRUB_SIZE];
-
 #define SEU_THRESHOLD_FOR_DEGRADED 5
 static uint32_t seu_counter = 0;
 
 static uint8_t golden_read(uint32_t idx)
 {
-    uintptr_t addr = (uintptr_t) &golden_copy[idx];
-
-    if (!memory_protection_check_access(addr, 1, MEM_PERM_READ)) {
-        return 0;
-    }
-
     return golden_copy[idx];
 }
 
@@ -52,10 +44,6 @@ static void memory_scrub_record_seu(void)
 
 static void memory_scrub_protect_buffers(volatile uint8_t *area)
 {
-    memory_protection_protect_region((uintptr_t) golden_copy,
-                                     (uintptr_t) golden_copy + sizeof(golden_copy),
-                                     MEM_PERM_READ,
-                                     "GoldenCopy");
     memory_protection_protect_region((uintptr_t) area,
                                      (uintptr_t) area + SCRUB_SIZE,
                                      MEM_PERM_READ | MEM_PERM_WRITE,
@@ -65,8 +53,7 @@ static void memory_scrub_protect_buffers(volatile uint8_t *area)
 void memory_scrub_init(volatile uint8_t *area)
 {
     for (int i = 0; i < SCRUB_SIZE; i++) {
-        area[i] = (uint8_t) i;
-        golden_copy[i] = (uint8_t) i;
+        area[i] = golden_copy[i];
     }
 
     memory_scrub_protect_buffers(area);
