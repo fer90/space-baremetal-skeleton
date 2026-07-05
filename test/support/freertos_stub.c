@@ -60,3 +60,23 @@ BaseType_t xQueueSend(QueueHandle_t xQueue, const void *pvItemToQueue, TickType_
 
     return pdPASS;
 }
+
+BaseType_t xQueueReceive(QueueHandle_t xQueue, void *pvBuffer, TickType_t xTicksToWait)
+{
+    test_queue_t *queue = (test_queue_t *) xQueue;
+    UBaseType_t tail;
+    uint8_t *slot;
+
+    (void) xTicksToWait;
+
+    if (queue == NULL || !queue->active || pvBuffer == NULL || queue->count == 0) {
+        return pdFAIL;
+    }
+
+    tail = (queue->head + queue->length - queue->count) % queue->length;
+    slot = &queue->storage[tail * queue->item_size];
+    memcpy(pvBuffer, slot, (size_t) queue->item_size);
+    queue->count--;
+
+    return pdPASS;
+}

@@ -72,7 +72,8 @@ TEST_OBJ = $(TEST_OBJ_DIR)/test_runner.o \
            $(TEST_OBJ_DIR)/freertos_stub.o \
            $(TEST_OBJ_DIR)/uart_stub.o \
            $(TEST_OBJ_DIR)/system_state.o \
-           $(TEST_OBJ_DIR)/memory_protection.o
+           $(TEST_OBJ_DIR)/memory_protection.o \
+           $(TEST_OBJ_DIR)/golden_copy.o
 
 test_runner: $(TEST_OBJ)
 	$(HOST_CC) $(TEST_CFLAGS) -o $@ $^
@@ -101,6 +102,10 @@ $(TEST_OBJ_DIR)/system_state.o: src/system_state.c
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
 $(TEST_OBJ_DIR)/memory_protection.o: src/memory_protection.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/golden_copy.o: src/golden_copy.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
