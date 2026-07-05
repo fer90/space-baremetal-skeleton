@@ -57,6 +57,14 @@ void test_command_dispatch_inject_fault_enqueues_command(void);
 void test_command_dispatch_unknown_key_returns_false(void);
 void test_command_dispatch_queue_full_prints_message(void);
 
+void test_command_handle_go_nominal_enqueues_state_request(void);
+void test_command_handle_go_degraded_enqueues_state_request(void);
+void test_command_handle_print_violations_reports_count(void);
+void test_command_handle_print_seu_count_reports_total(void);
+void test_command_handle_toggle_fault_inject_prints_state(void);
+void test_command_handle_status_requires_debug_build(void);
+void test_command_handle_inject_fault_queues_scrub_event(void);
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -117,6 +125,14 @@ int main(void)
     RUN_TEST(test_command_dispatch_inject_fault_enqueues_command);
     RUN_TEST(test_command_dispatch_unknown_key_returns_false);
     RUN_TEST(test_command_dispatch_queue_full_prints_message);
+
+    RUN_TEST(test_command_handle_go_nominal_enqueues_state_request);
+    RUN_TEST(test_command_handle_go_degraded_enqueues_state_request);
+    RUN_TEST(test_command_handle_print_violations_reports_count);
+    RUN_TEST(test_command_handle_print_seu_count_reports_total);
+    RUN_TEST(test_command_handle_toggle_fault_inject_prints_state);
+    RUN_TEST(test_command_handle_status_requires_debug_build);
+    RUN_TEST(test_command_handle_inject_fault_queues_scrub_event);
 
     return UNITY_END();
 }

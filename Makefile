@@ -37,12 +37,27 @@ OBJ = $(ASRC:.s=.o) \
       $(patsubst %.c,%.o,$(filter %.c,$(CSRC))) \
       $(patsubst %.S,%.o,$(filter %.S,$(CSRC)))
 
-all: kernel.elf kernel.bin
+ifeq ($(DEBUG),1)
+DIST_DIR = dist/debug
+else
+DIST_DIR = dist/release
+endif
 
-kernel.elf: $(OBJ)
-	$(LD) -T linker.ld -Map=kernel.map --cref -o $@ $^
+KERNEL_ELF = $(DIST_DIR)/kernel.elf
+KERNEL_BIN = $(DIST_DIR)/kernel.bin
+KERNEL_MAP = $(DIST_DIR)/kernel.map
+SIZE = $(CROSS_COMPILE)size
 
-kernel.bin: kernel.elf
+all: $(KERNEL_ELF) $(KERNEL_BIN)
+	@$(SIZE) $(KERNEL_ELF) | tee $(DIST_DIR)/size.txt
+
+$(DIST_DIR):
+	mkdir -p $@
+
+$(KERNEL_ELF): $(OBJ) | $(DIST_DIR)
+	$(LD) -T linker.ld -Map=$(KERNEL_MAP) --cref -o $@ $^
+
+$(KERNEL_BIN): $(KERNEL_ELF)
 	$(OBJCOPY) -O binary $< $@
 
 %.o: %.c
@@ -176,17 +191,21 @@ lint:
 		src/
 
 clean:
-	rm -f $(OBJ) *.elf *.bin *.map test_runner
-	rm -rf $(TEST_OBJ_DIR)
+	rm -f $(OBJ) test_runner kernel.elf kernel.bin kernel.map
+	rm -rf $(TEST_OBJ_DIR) dist
 
-qemu: kernel.bin
-	qemu-system-riscv64 -machine virt -cpu rv64 -nographic -kernel kernel.bin -bios none
+qemu: $(KERNEL_BIN)
+	qemu-system-riscv64 -machine virt -cpu rv64 -nographic -kernel $(KERNEL_BIN) -bios none
 
-qemu-smoke: kernel.bin
+qemu-smoke: $(KERNEL_BIN)
 	chmod +x scripts/qemu_smoke.sh
-	scripts/qemu_smoke.sh
+	KERNEL_BIN=$(KERNEL_BIN) scripts/qemu_smoke.sh
+
+qemu-soak: $(KERNEL_BIN)
+	chmod +x scripts/qemu_soak.sh
+	KERNEL_BIN=$(KERNEL_BIN) scripts/qemu_soak.sh
 
 debug:
 	$(MAKE) DEBUG=1 all
 
-.PHONY: all clean qemu qemu-smoke debug test lint check
+.PHONY: all clean qemu qemu-smoke qemu-soak debug test lint check

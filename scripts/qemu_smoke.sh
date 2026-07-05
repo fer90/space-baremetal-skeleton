@@ -4,8 +4,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-if [[ ! -f kernel.bin ]]; then
-    echo "kernel.bin not found; run make first" >&2
+KERNEL_BIN="${KERNEL_BIN:-dist/release/kernel.bin}"
+
+if [[ ! -f "$KERNEL_BIN" ]]; then
+    echo "kernel binary not found: ${KERNEL_BIN} (run make first)" >&2
     exit 1
 fi
 
@@ -15,7 +17,7 @@ trap 'rm -f "$LOG"' EXIT
 set +e
 # h = help, d = request DEGRADED, n = request NOMINAL (exercises command + state paths)
 ( sleep 3; printf 'hdn' ) | timeout 15s qemu-system-riscv64 \
-    -machine virt -cpu rv64 -nographic -kernel kernel.bin -bios none >"$LOG" 2>&1
+    -machine virt -cpu rv64 -nographic -kernel "$KERNEL_BIN" -bios none >"$LOG" 2>&1
 code=$?
 set -e
 
@@ -46,4 +48,4 @@ require_pattern "[CMD] Commands:" "missing help output"
 require_pattern "[STATE] changed to DEGRADED" "missing DEGRADED transition (UART d)"
 require_pattern "[STATE] changed to NOMINAL" "missing NOMINAL transition (UART n)"
 
-echo "QEMU smoke test OK"
+echo "QEMU smoke test OK (${KERNEL_BIN})"

@@ -85,6 +85,57 @@ bool command_dispatch_char(char c)
     return true;
 }
 
+void command_handle(CommandType_t cmd)
+{
+    switch (cmd) {
+        case CMD_STATUS:
+#ifdef DEBUG
+            telemetry_print_snapshot();
+#else
+            uart_puts(LOG_PREFIX_CMD "telemetry requires DEBUG build\r\n");
+#endif
+            break;
+
+        case CMD_GO_NOMINAL:
+            system_state_request_change(SYSTEM_STATE_NOMINAL, 0x10);
+            break;
+
+        case CMD_GO_DEGRADED:
+            system_state_request_change(SYSTEM_STATE_DEGRADED, 0x10);
+            break;
+
+        case CMD_INJECT_FAULT:
+            inject_random_fault(scrub_area);
+            break;
+
+        case CMD_FORCE_SCRUB:
+            memory_scrub(scrub_area);
+            break;
+
+        case CMD_PRINT_VIOLATIONS:
+            uart_puts(LOG_PREFIX_CMD "mem_prot violations: ");
+            uart_put_dec(memory_protection_get_violation_count());
+            uart_puts("\r\n");
+            break;
+
+        case CMD_PRINT_SEU_COUNT:
+            uart_puts(LOG_PREFIX_CMD "SEU count: ");
+            uart_put_dec(memory_scrub_get_seu_count());
+            uart_puts("\r\n");
+            break;
+
+        case CMD_TOGGLE_FAULT_INJECT:
+            fault_inject_set_enabled(!fault_inject_is_enabled());
+            uart_puts(LOG_PREFIX_CMD "fault injection: ");
+            uart_puts(fault_inject_is_enabled() ? "ON\r\n" : "OFF\r\n");
+            break;
+
+        default:
+            uart_puts(LOG_PREFIX_CMD "unknown command\r\n");
+            break;
+    }
+}
+
 void vTaskCommandInput(void *pvParameters)
 {
     (void) pvParameters;
@@ -117,53 +168,7 @@ void vTaskCommandHandler(void *pvParameters)
 
     for (;;) {
         if (xQueueReceive(xCommandQueue, &cmd, portMAX_DELAY) == pdPASS) {
-            switch (cmd) {
-                case CMD_STATUS:
-#ifdef DEBUG
-                    telemetry_print_snapshot();
-#else
-                    uart_puts(LOG_PREFIX_CMD "telemetry requires DEBUG build\r\n");
-#endif
-                    break;
-
-                case CMD_GO_NOMINAL:
-                    system_state_request_change(SYSTEM_STATE_NOMINAL, 0x10);
-                    break;
-
-                case CMD_GO_DEGRADED:
-                    system_state_request_change(SYSTEM_STATE_DEGRADED, 0x10);
-                    break;
-
-                case CMD_INJECT_FAULT:
-                    inject_random_fault(scrub_area);
-                    break;
-
-                case CMD_FORCE_SCRUB:
-                    memory_scrub(scrub_area);
-                    break;
-
-                case CMD_PRINT_VIOLATIONS:
-                    uart_puts(LOG_PREFIX_CMD "mem_prot violations: ");
-                    uart_put_dec(memory_protection_get_violation_count());
-                    uart_puts("\r\n");
-                    break;
-
-                case CMD_PRINT_SEU_COUNT:
-                    uart_puts(LOG_PREFIX_CMD "SEU count: ");
-                    uart_put_dec(memory_scrub_get_seu_count());
-                    uart_puts("\r\n");
-                    break;
-
-                case CMD_TOGGLE_FAULT_INJECT:
-                    fault_inject_set_enabled(!fault_inject_is_enabled());
-                    uart_puts(LOG_PREFIX_CMD "fault injection: ");
-                    uart_puts(fault_inject_is_enabled() ? "ON\r\n" : "OFF\r\n");
-                    break;
-
-                default:
-                    uart_puts(LOG_PREFIX_CMD "unknown command\r\n");
-                    break;
-            }
+            command_handle(cmd);
         }
     }
 }

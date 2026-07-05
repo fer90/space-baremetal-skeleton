@@ -31,19 +31,13 @@ jobs:
       - name: Build release firmware
         run: |
           make clean && make
-          mkdir -p dist/release
-          cp kernel.elf kernel.bin kernel.map dist/release/
-          riscv64-unknown-elf-size kernel.elf | tee dist/release/size.txt
           chmod +x scripts/check_firmware_size.sh
-          scripts/check_firmware_size.sh release kernel.elf
+          scripts/check_firmware_size.sh release dist/release/kernel.elf
 
       - name: Build DEBUG firmware
         run: |
           make clean && make debug
-          mkdir -p dist/debug
-          cp kernel.elf kernel.bin kernel.map dist/debug/
-          riscv64-unknown-elf-size kernel.elf | tee dist/debug/size.txt
-          scripts/check_firmware_size.sh debug kernel.elf
+          scripts/check_firmware_size.sh debug dist/debug/kernel.elf
 
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v7
@@ -56,5 +50,8 @@ jobs:
       - name: Host tests and static analysis
         run: make check
 
-      - name: QEMU smoke test
-        run: make qemu-smoke
+      - name: QEMU smoke test (release)
+        run: make qemu-smoke KERNEL_BIN=dist/release/kernel.bin
+
+      - name: QEMU soak test (release)
+        run: make qemu-soak KERNEL_BIN=dist/release/kernel.bin

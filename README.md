@@ -221,8 +221,12 @@ test/
   support/            # FreeRTOS stubs, UART capture, shared setUp/tearDown
 scripts/
   check_firmware_size.sh  # CI size gate for release/debug builds
-  qemu_smoke.sh           # CI QEMU UART assertions (also: make qemu-smoke)
-linker.ld             # Loads at 0x80000000; .text.critical section
+  qemu_smoke.sh           # CI QEMU UART assertions (make qemu-smoke)
+  qemu_soak.sh            # 30s run; fails on [ERROR] (make qemu-soak)
+dist/
+  release/            # Default `make` outputs: kernel.elf, kernel.bin, kernel.map, size.txt
+  debug/              # `make debug` outputs (same layout)
+linker.ld             # Loads at 0x80000000; separate RX/RW ELF segments
 cppcheck-suppressions.txt # Global cppcheck suppressions (see make lint)
 .github/workflows/ci.yml  # Build, test, lint, QEMU smoke, artifact upload
 ```
@@ -232,14 +236,15 @@ cppcheck-suppressions.txt # Global cppcheck suppressions (see make lint)
 Every push to `main`/`master` and every pull request runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
 
 1. Release and DEBUG firmware builds with size checks
-2. Firmware artifacts (`kernel.elf`, `kernel.bin`, `kernel.map`, `size.txt`) uploaded per commit — download from the Actions run
-3. Host tests + static analysis (`make check` — runs `test` then `lint`)
-4. QEMU smoke test (`make qemu-smoke`) — boot, help, UART `d`/`n` state transitions
+2. Firmware artifacts under `dist/release/` and `dist/debug/` — uploaded per commit
+3. Host tests + static analysis (`make check`)
+4. QEMU smoke (`make qemu-smoke`) — boot, help, UART `d`/`n` state transitions
+5. QEMU soak (`make qemu-soak`) — 30s run, no `[ERROR]` lines
 
 Reproduce locally before pushing:
 
 ```bash
-make clean && make && make check && make qemu-smoke
+make clean && make && make check && make qemu-smoke && make qemu-soak
 ```
 
 ### Third-party versions
@@ -266,20 +271,24 @@ sudo apt install gcc cppcheck
 ```bash
 make clean
 make
-make qemu
+make qemu          # runs dist/release/kernel.bin
+make qemu-smoke
+make qemu-soak
 ```
+
+Outputs land in `dist/release/` (`kernel.elf`, `kernel.bin`, `kernel.map`, `size.txt`).
 
 ### DEBUG build (telemetry + ISR stack guard)
 
 ```bash
 make clean
 make debug
-make qemu
+make qemu          # runs dist/debug/kernel.bin
 ```
 
 Or equivalently: `make clean && DEBUG=1 make && make qemu`
 
-Each link writes `kernel.map` (section/symbol layout). Use it with `riscv64-unknown-elf-size kernel.elf` when trimming flash or RAM. The map is gitignored and included in CI artifacts.
+Each link writes `dist/<flavor>/kernel.map`. Use it with `riscv64-unknown-elf-size dist/release/kernel.elf` when trimming flash or RAM.
 
 ### Host unit tests
 
@@ -293,7 +302,7 @@ git -C test/Unity checkout b706271f3255e33a0e5ec068844462c5fdb5c527
 make test
 ```
 
-Forty-nine host tests cover memory protection, system state, state-machine policy, watchdog FDIR logic, memory scrub, fault injection, the fault queue, and UART command dispatch. Tests live under `test/test_*.c` with a thin `test/test_runner.c`; stubs in `test/support/` replace FreeRTOS and capture UART output for assertions.
+Fifty-six host tests cover memory protection, system state, state-machine policy, watchdog FDIR logic, memory scrub, fault injection, the fault queue, and UART command dispatch plus handler execution. Tests live under `test/test_*.c` with a thin `test/test_runner.c`; stubs in `test/support/` replace FreeRTOS and capture UART output for assertions.
 
 ### Static analysis
 
@@ -329,7 +338,7 @@ Stack overflows are caught by `configCHECK_FOR_STACK_OVERFLOW` and reported as `
 The Makefile runs:
 
 ```bash
-qemu-system-riscv64 -machine virt -cpu rv64 -nographic -kernel kernel.bin -bios none
+qemu-system-riscv64 -machine virt -cpu rv64 -nographic -kernel dist/release/kernel.bin -bios none
 ```
 
 With `-nographic`, the UART is wired to stdio. Press **Ctrl+A** then **c** to switch to the QEMU monitor; **Ctrl+A** then **x** to quit.

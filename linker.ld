@@ -1,13 +1,19 @@
 /* Improved linker script for RISC-V bare metal - Space Skeleton */
 ENTRY(_start)
 
+PHDRS
+{
+    text PT_LOAD FLAGS(5);  /* PF_R | PF_X — read + execute */
+    data PT_LOAD FLAGS(6);  /* PF_R | PF_W — read + write */
+}
+
 SECTIONS
 {
     . = 0x80000000;
 
     .text.init : {
         *(.text.init)
-    }
+    } :text
 
     .text : {
         __critical_text_start = .;
@@ -15,15 +21,15 @@ SECTIONS
         __critical_text_end = .;
         *(.text .text.*)
         *(.gnu.linkonce.t*)
-    }
+    } :text
 
     .rodata : {
         *(.rodata*)
-    }
+    } :text
 
     .data : {
         *(.data)
-    }
+    } :data
 
     .bss : {
         . = ALIGN(8);
@@ -32,5 +38,5 @@ SECTIONS
         *(.bss.*)
         *(COMMON)
         __bss_end = .;
-    }
+    } :data
 }

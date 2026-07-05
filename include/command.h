@@ -22,6 +22,7 @@ extern QueueHandle_t xCommandQueue;
 void command_init(void);
 BaseType_t command_send(CommandType_t cmd);
 bool command_dispatch_char(char c);
+void command_handle(CommandType_t cmd);
 void vTaskCommandHandler(void *pvParameters);
 void vTaskCommandInput(void *pvParameters);
 
