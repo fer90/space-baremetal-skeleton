@@ -58,8 +58,55 @@ kernel.bin: kernel.elf
 FreeRTOS/Source/portable/MemMang/%.o: FreeRTOS/Source/portable/MemMang/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Host unit tests (Unity)
+HOST_CC ?= gcc
+UNITY_DIR = test/Unity/src
+TEST_SUPPORT = test/support
+TEST_OBJ_DIR = test/obj
+
+TEST_CFLAGS = -std=c11 -Wall -Wextra -O0 -g \
+              -I$(TEST_SUPPORT) -Iinclude -I$(UNITY_DIR)
+
+TEST_OBJ = $(TEST_OBJ_DIR)/test_runner.o \
+           $(TEST_OBJ_DIR)/unity.o \
+           $(TEST_OBJ_DIR)/freertos_stub.o \
+           $(TEST_OBJ_DIR)/uart_stub.o \
+           $(TEST_OBJ_DIR)/system_state.o \
+           $(TEST_OBJ_DIR)/memory_protection.o
+
+test_runner: $(TEST_OBJ)
+	$(HOST_CC) $(TEST_CFLAGS) -o $@ $^
+
+test: test_runner
+	./test_runner
+
+$(TEST_OBJ_DIR)/%.o: test/%.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/unity.o: $(UNITY_DIR)/unity.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/freertos_stub.o: $(TEST_SUPPORT)/freertos_stub.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/uart_stub.o: $(TEST_SUPPORT)/uart_stub.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/system_state.o: src/system_state.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/memory_protection.o: src/memory_protection.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
 clean:
-	rm -f $(OBJ) *.elf *.bin
+	rm -f $(OBJ) *.elf *.bin test_runner
+	rm -rf $(TEST_OBJ_DIR)
 
 qemu: kernel.bin
 	qemu-system-riscv64 -machine virt -cpu rv64 -nographic -kernel kernel.bin -bios none
@@ -67,4 +114,4 @@ qemu: kernel.bin
 debug:
 	$(MAKE) DEBUG=1 all
 
-.PHONY: all clean qemu debug
+.PHONY: all clean qemu debug test

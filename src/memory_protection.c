@@ -1,6 +1,7 @@
 #include "memory_protection.h"
-#include "common.h"
+#include "log.h"
 #include "system_state.h"
+#include "uart.h"
 
 #define MAX_PROTECTED_REGIONS              8
 #define MEM_PROT_VIOLATION_THRESHOLD       3

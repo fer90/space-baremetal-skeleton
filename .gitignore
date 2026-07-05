@@ -54,3 +54,10 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Unity test framework (third-party; clone into test/Unity)
+test/Unity/
+
+# Host unit test build outputs
+test/obj/
+test_runner

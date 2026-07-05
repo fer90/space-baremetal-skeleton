@@ -1,5 +1,6 @@
 #include "system_state.h"
-#include "common.h"
+#include "log.h"
+#include "uart.h"
 
 volatile SystemState_t gSystemState = SYSTEM_STATE_BOOT;
 QueueHandle_t xStateRequestQueue = NULL;

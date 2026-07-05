@@ -1,0 +1,13 @@
+#ifndef QUEUE_H
+#define QUEUE_H
+
+#include "FreeRTOS.h"
+
+typedef struct QueueDefinition *QueueHandle_t;
+
+QueueHandle_t xQueueCreate(UBaseType_t uxQueueLength, UBaseType_t uxItemSize);
+BaseType_t xQueueSend(QueueHandle_t xQueue, const void *pvItemToQueue, TickType_t xTicksToWait);
+
+void test_freertos_reset(void);
+
+#endif /* QUEUE_H */
