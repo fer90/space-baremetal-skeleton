@@ -1,5 +1,12 @@
-#include "common.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "watchdog.h"
+#include "system_state.h"
+#include "system_defs.h"
+#include "memory_protection.h"
 #include "critical_exec.h"
+#include "log.h"
+#include "uart.h"
 
 TaskHandle_t xWatchdogTaskHandle = NULL;
 
@@ -18,6 +25,35 @@ void watchdog_kick(uint32_t taskBit)
     }
 
     watchdog_kick_impl(taskBit);
+}
+
+void watchdog_evaluate_cycle(uint32_t received_bits,
+                             SystemState_t current_state,
+                             uint32_t *successful_cycles)
+{
+    if (successful_cycles == NULL) {
+        return;
+    }
+
+    if ((received_bits & WATCHDOG_EXPECTED_BITS) == WATCHDOG_EXPECTED_BITS) {
+        if (current_state == SYSTEM_STATE_DEGRADED) {
+            (*successful_cycles)++;
+
+            if (*successful_cycles >= WATCHDOG_RECOVERY_THRESHOLD) {
+                (void) system_state_request_change(SYSTEM_STATE_NOMINAL, 0x03u);
+                *successful_cycles = 0;
+            }
+        } else {
+            *successful_cycles = 0;
+        }
+        return;
+    }
+
+    if (current_state < SYSTEM_STATE_DEGRADED) {
+        (void) system_state_request_change(SYSTEM_STATE_DEGRADED, 0x01u);
+    } else if (current_state == SYSTEM_STATE_DEGRADED) {
+        (void) system_state_request_change(SYSTEM_STATE_SAFE, 0x01u);
+    }
 }
 
 static void watchdog_print_missing_bits(uint32_t received)
@@ -43,7 +79,6 @@ void vTaskWatchdog(void *pvParameters)
     xWatchdogTaskHandle = xTaskGetCurrentTaskHandle();
 
     uint32_t successful_cycles = 0;
-    const uint32_t RECOVERY_THRESHOLD = 5;
 
     for (;;) {
         uint32_t received = 0;
@@ -60,27 +95,10 @@ void vTaskWatchdog(void *pvParameters)
             received |= bits;
         }
 
-        SystemState_t current_state = system_state_get();
-
-        if ((received & WATCHDOG_EXPECTED_BITS) == WATCHDOG_EXPECTED_BITS) {
-            if (current_state == SYSTEM_STATE_DEGRADED) {
-                successful_cycles++;
-
-                if (successful_cycles >= RECOVERY_THRESHOLD) {
-                    system_state_request_change(SYSTEM_STATE_NOMINAL, 0x03);
-                    successful_cycles = 0;
-                }
-            } else {
-                successful_cycles = 0;
-            }
-        } else {
+        if ((received & WATCHDOG_EXPECTED_BITS) != WATCHDOG_EXPECTED_BITS) {
             watchdog_print_missing_bits(received);
-
-            if (current_state < SYSTEM_STATE_DEGRADED) {
-                system_state_request_change(SYSTEM_STATE_DEGRADED, 0x01);
-            } else if (current_state == SYSTEM_STATE_DEGRADED) {
-                system_state_request_change(SYSTEM_STATE_SAFE, 0x01);
-            }
         }
+
+        watchdog_evaluate_cycle(received, system_state_get(), &successful_cycles);
     }
 }

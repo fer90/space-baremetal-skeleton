@@ -71,8 +71,8 @@ TEST_OBJ = $(TEST_OBJ_DIR)/test_runner.o \
            $(TEST_OBJ_DIR)/unity.o \
            $(TEST_OBJ_DIR)/freertos_stub.o \
            $(TEST_OBJ_DIR)/uart_stub.o \
-           $(TEST_OBJ_DIR)/watchdog_stub.o \
            $(TEST_OBJ_DIR)/system_state.o \
+           $(TEST_OBJ_DIR)/watchdog.o \
            $(TEST_OBJ_DIR)/memory_protection.o \
            $(TEST_OBJ_DIR)/memory_scrub.o \
            $(TEST_OBJ_DIR)/fault_queue.o \
@@ -99,10 +99,6 @@ $(TEST_OBJ_DIR)/freertos_stub.o: $(TEST_SUPPORT)/freertos_stub.c
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
 $(TEST_OBJ_DIR)/uart_stub.o: $(TEST_SUPPORT)/uart_stub.c
-	@mkdir -p $(TEST_OBJ_DIR)
-	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
-
-$(TEST_OBJ_DIR)/watchdog_stub.o: $(TEST_SUPPORT)/watchdog_stub.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
@@ -134,6 +130,10 @@ $(TEST_OBJ_DIR)/state_machine.o: src/state_machine.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
+$(TEST_OBJ_DIR)/watchdog.o: src/watchdog.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
 CPPCHECK ?= cppcheck
 
 lint:
@@ -153,7 +153,11 @@ clean:
 qemu: kernel.bin
 	qemu-system-riscv64 -machine virt -cpu rv64 -nographic -kernel kernel.bin -bios none
 
+qemu-smoke: kernel.bin
+	chmod +x scripts/qemu_smoke.sh
+	scripts/qemu_smoke.sh
+
 debug:
 	$(MAKE) DEBUG=1 all
 
-.PHONY: all clean qemu debug test lint
+.PHONY: all clean qemu qemu-smoke debug test lint

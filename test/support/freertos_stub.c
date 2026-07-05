@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "queue.h"
@@ -19,16 +20,30 @@ typedef struct {
 
 static test_queue_t test_queues[TEST_QUEUE_SLOTS];
 static TickType_t test_tick_count;
+static TaskHandle_t test_current_task;
+static uint32_t test_notification_bits;
 
 void test_freertos_reset(void)
 {
     memset(test_queues, 0, sizeof(test_queues));
     test_tick_count = 0;
+    test_current_task = NULL;
+    test_notification_bits = 0;
 }
 
 void test_freertos_set_tick_count(TickType_t ticks)
 {
     test_tick_count = ticks;
+}
+
+void test_task_notify_reset(void)
+{
+    test_notification_bits = 0;
+}
+
+uint32_t test_task_notify_get_bits(void)
+{
+    return test_notification_bits;
 }
 
 QueueHandle_t xQueueCreate(UBaseType_t uxQueueLength, UBaseType_t uxItemSize)
@@ -109,4 +124,46 @@ void vTaskDelay(TickType_t xTicksToDelay)
 TickType_t xTaskGetTickCount(void)
 {
     return test_tick_count;
+}
+
+TaskHandle_t xTaskGetCurrentTaskHandle(void)
+{
+    return test_current_task;
+}
+
+BaseType_t xTaskNotify(TaskHandle_t xTaskToNotify, uint32_t ulValue, eNotifyAction eAction)
+{
+    (void) eAction;
+
+    if (xTaskToNotify == NULL) {
+        return pdFAIL;
+    }
+
+    test_notification_bits |= ulValue;
+    return pdPASS;
+}
+
+BaseType_t xTaskNotifyWait(uint32_t ulBitsToClearOnEntry,
+                           uint32_t ulBitsToClearOnExit,
+                           uint32_t *pulNotificationValue,
+                           TickType_t xTicksToWait)
+{
+    uint32_t bits;
+
+    (void) ulBitsToClearOnEntry;
+    (void) ulBitsToClearOnExit;
+    (void) xTicksToWait;
+
+    if (pulNotificationValue == NULL) {
+        return pdFAIL;
+    }
+
+    bits = test_notification_bits;
+    if (bits == 0) {
+        return pdFAIL;
+    }
+
+    *pulNotificationValue = bits;
+    test_notification_bits = 0;
+    return pdPASS;
 }

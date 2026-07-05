@@ -220,6 +220,7 @@ test/
   support/            # FreeRTOS/UART stubs for host build
 scripts/
   check_firmware_size.sh  # CI size gate for release/debug builds
+  qemu_smoke.sh           # CI QEMU UART assertions (also: make qemu-smoke)
 linker.ld             # Loads at 0x80000000; .text.critical section
 cppcheck-suppressions.txt # Global cppcheck suppressions (see make lint)
 .github/workflows/ci.yml  # Build, test, lint, QEMU smoke, artifact upload
@@ -233,7 +234,7 @@ Every push to `main`/`master` and every pull request runs [`.github/workflows/ci
 2. Firmware artifacts (`kernel.elf`, `kernel.bin`, `kernel.map`, `size.txt`) uploaded per commit — download from the Actions run
 3. Host Unity tests (`make test`)
 4. Static analysis (`make lint`)
-5. QEMU smoke test (10 s run)
+5. QEMU smoke test (`make qemu-smoke`) — boot banner, NOMINAL state, scrub init, UART help
 
 Reproduce locally before pushing:
 
@@ -285,7 +286,7 @@ git -C test/Unity checkout b706271f3255e33a0e5ec068844462c5fdb5c527
 make test
 ```
 
-Thirty-six host tests cover memory protection, system state, state-machine policy, memory scrub, fault injection, and the fault queue (`test/test_runner.c`). Stubs in `test/support/` replace FreeRTOS and UART for the host build.
+Forty-three host tests cover memory protection, system state, state-machine policy, watchdog FDIR logic, memory scrub, fault injection, and the fault queue (`test/test_runner.c`). Stubs in `test/support/` replace FreeRTOS and UART for the host build.
 
 ### Static analysis
 
