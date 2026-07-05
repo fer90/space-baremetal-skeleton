@@ -40,7 +40,7 @@ OBJ = $(ASRC:.s=.o) \
 all: kernel.elf kernel.bin
 
 kernel.elf: $(OBJ)
-	$(LD) -T linker.ld -o $@ $^
+	$(LD) -T linker.ld -Map=kernel.map --cref -o $@ $^
 
 kernel.bin: kernel.elf
 	$(OBJCOPY) -O binary $< $@
@@ -109,8 +109,20 @@ $(TEST_OBJ_DIR)/golden_copy.o: src/golden_copy.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
+CPPCHECK ?= cppcheck
+
+lint:
+	$(CPPCHECK) --enable=warning,style,performance,portability --inconclusive --inline-suppr --quiet \
+		-Iinclude \
+		-IFreeRTOS/Source/include \
+		-IFreeRTOS/Source/portable/GCC/RISC-V \
+		--suppressions-list=cppcheck-suppressions.txt \
+		--suppress=missingIncludeSystem \
+		--error-exitcode=1 \
+		src/
+
 clean:
-	rm -f $(OBJ) *.elf *.bin test_runner
+	rm -f $(OBJ) *.elf *.bin *.map test_runner
 	rm -rf $(TEST_OBJ_DIR)
 
 qemu: kernel.bin
@@ -119,4 +131,4 @@ qemu: kernel.bin
 debug:
 	$(MAKE) DEBUG=1 all
 
-.PHONY: all clean qemu debug test
+.PHONY: all clean qemu debug test lint

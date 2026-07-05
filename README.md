@@ -215,7 +215,30 @@ src/
   system.c            # system_halt()
   uart.c              # MMIO UART (QEMU virt console)
 FreeRTOS/             # Vendored FreeRTOS sources (RISC-V GCC port, heap_4)
+test/
+  test_runner.c       # Host-side Unity tests (memory protection)
+  support/            # FreeRTOS/UART stubs for host build
+scripts/
+  check_firmware_size.sh  # CI size gate for release/debug builds
 linker.ld             # Loads at 0x80000000; .text.critical section
+cppcheck-suppressions.txt # Global cppcheck suppressions (see make lint)
+.github/workflows/ci.yml  # Build, test, lint, QEMU smoke, artifact upload
+```
+
+## CI
+
+Every push to `main`/`master` and every pull request runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+
+1. Release and DEBUG firmware builds with size checks
+2. Firmware artifacts (`kernel.elf`, `kernel.bin`, `kernel.map`, `size.txt`) uploaded per commit — download from the Actions run
+3. Host Unity tests (`make test`)
+4. Static analysis (`make lint`)
+5. QEMU smoke test (10 s run)
+
+Reproduce locally before pushing:
+
+```bash
+make clean && make && make test && make lint
 ```
 
 ## Build & run
@@ -223,8 +246,11 @@ linker.ld             # Loads at 0x80000000; .text.critical section
 ### Prerequisites
 
 ```bash
-# Ubuntu/Debian
+# Ubuntu/Debian — firmware
 sudo apt install gcc-riscv64-unknown-elf qemu-system-misc
+
+# Host tests and static analysis (also used in CI)
+sudo apt install gcc cppcheck
 ```
 
 ### Release build (production tasks only)
@@ -244,6 +270,30 @@ make qemu
 ```
 
 Or equivalently: `make clean && DEBUG=1 make && make qemu`
+
+Each link writes `kernel.map` (section/symbol layout). Use it with `riscv64-unknown-elf-size kernel.elf` when trimming flash or RAM. The map is gitignored and included in CI artifacts.
+
+### Host unit tests
+
+Tests run on the build host (no cross-compiler). Clone Unity once into `test/Unity` (same commit as CI):
+
+```bash
+git clone --depth 1 --no-checkout https://github.com/ThrowTheSwitch/Unity.git test/Unity
+git -C test/Unity fetch --depth 1 origin b706271f3255e33a0e5ec068844462c5fdb5c527
+git -C test/Unity checkout b706271f3255e33a0e5ec068844462c5fdb5c527
+
+make test
+```
+
+Twelve tests cover software memory protection (`test/test_runner.c`). Stubs in `test/support/` replace FreeRTOS and UART for the host build.
+
+### Static analysis
+
+```bash
+make lint
+```
+
+Runs cppcheck on `src/` with the same flags as CI. Project-wide suppressions live in `cppcheck-suppressions.txt`; function-specific ones use `// cppcheck-suppress` comments in source.
 
 ### Error handling
 

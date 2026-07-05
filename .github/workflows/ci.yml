@@ -32,7 +32,7 @@ jobs:
         run: |
           make clean && make
           mkdir -p dist/release
-          cp kernel.elf kernel.bin dist/release/
+          cp kernel.elf kernel.bin kernel.map dist/release/
           riscv64-unknown-elf-size kernel.elf | tee dist/release/size.txt
           chmod +x scripts/check_firmware_size.sh
           scripts/check_firmware_size.sh release kernel.elf
@@ -41,7 +41,7 @@ jobs:
         run: |
           make clean && make debug
           mkdir -p dist/debug
-          cp kernel.elf kernel.bin dist/debug/
+          cp kernel.elf kernel.bin kernel.map dist/debug/
           riscv64-unknown-elf-size kernel.elf | tee dist/debug/size.txt
           scripts/check_firmware_size.sh debug kernel.elf
 
@@ -57,15 +57,7 @@ jobs:
         run: make test
 
       - name: Static analysis (cppcheck)
-        run: |
-          cppcheck --enable=warning,style,performance,portability --inconclusive --inline-suppr --quiet \
-            -Iinclude \
-            -IFreeRTOS/Source/include \
-            -IFreeRTOS/Source/portable/GCC/RISC-V \
-            --suppressions-list=cppcheck-suppressions.txt \
-            --suppress=missingIncludeSystem \
-            --error-exitcode=1 \
-            src/
+        run: make lint
 
       - name: QEMU smoke test
         run: |
