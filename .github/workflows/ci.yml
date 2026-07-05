@@ -43,10 +43,12 @@ jobs:
 
       - name: QEMU smoke test
         run: |
+          set +e
           timeout 10s make qemu
           code=$?
-          if [ "$code" -eq 124 ]; then
-            echo "QEMU smoke test OK (stopped after timeout)"
-          else
-            exit "$code"
+          set -e
+          if [ "$code" -eq 124 ] || [ "$code" -eq 0 ]; then
+            echo "QEMU smoke test OK (exit code ${code})"
+            exit 0
           fi
+          exit "$code"
