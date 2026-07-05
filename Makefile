@@ -71,8 +71,12 @@ TEST_OBJ = $(TEST_OBJ_DIR)/test_runner.o \
            $(TEST_OBJ_DIR)/unity.o \
            $(TEST_OBJ_DIR)/freertos_stub.o \
            $(TEST_OBJ_DIR)/uart_stub.o \
+           $(TEST_OBJ_DIR)/watchdog_stub.o \
            $(TEST_OBJ_DIR)/system_state.o \
            $(TEST_OBJ_DIR)/memory_protection.o \
+           $(TEST_OBJ_DIR)/memory_scrub.o \
+           $(TEST_OBJ_DIR)/fault_queue.o \
+           $(TEST_OBJ_DIR)/fault_inject.o \
            $(TEST_OBJ_DIR)/golden_copy.o
 
 test_runner: $(TEST_OBJ)
@@ -97,6 +101,10 @@ $(TEST_OBJ_DIR)/uart_stub.o: $(TEST_SUPPORT)/uart_stub.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
+$(TEST_OBJ_DIR)/watchdog_stub.o: $(TEST_SUPPORT)/watchdog_stub.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
 $(TEST_OBJ_DIR)/system_state.o: src/system_state.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
@@ -106,6 +114,18 @@ $(TEST_OBJ_DIR)/memory_protection.o: src/memory_protection.c
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
 $(TEST_OBJ_DIR)/golden_copy.o: src/golden_copy.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/memory_scrub.o: src/memory_scrub.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/fault_queue.o: src/fault_queue.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/fault_inject.o: src/fault_inject.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 

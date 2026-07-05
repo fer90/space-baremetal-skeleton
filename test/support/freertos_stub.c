@@ -3,8 +3,10 @@
 #include <string.h>
 
 #include "queue.h"
+#include "task.h"
 
-#define TEST_QUEUE_CAPACITY 8
+#define TEST_QUEUE_SLOTS     4
+#define TEST_QUEUE_CAPACITY  8
 
 typedef struct {
     bool active;
@@ -15,27 +17,45 @@ typedef struct {
     uint8_t storage[TEST_QUEUE_CAPACITY * 64];
 } test_queue_t;
 
-static test_queue_t test_queue;
+static test_queue_t test_queues[TEST_QUEUE_SLOTS];
+static TickType_t test_tick_count;
 
 void test_freertos_reset(void)
 {
-    memset(&test_queue, 0, sizeof(test_queue));
+    memset(test_queues, 0, sizeof(test_queues));
+    test_tick_count = 0;
+}
+
+void test_freertos_set_tick_count(TickType_t ticks)
+{
+    test_tick_count = ticks;
 }
 
 QueueHandle_t xQueueCreate(UBaseType_t uxQueueLength, UBaseType_t uxItemSize)
 {
+    size_t max_item_size = sizeof(test_queues[0].storage) / TEST_QUEUE_CAPACITY;
+
     if (uxQueueLength == 0 || uxQueueLength > TEST_QUEUE_CAPACITY || uxItemSize == 0 ||
-        uxItemSize > sizeof(test_queue.storage) / TEST_QUEUE_CAPACITY) {
+        uxItemSize > max_item_size) {
         return NULL;
     }
 
-    test_queue.active = true;
-    test_queue.length = uxQueueLength;
-    test_queue.item_size = uxItemSize;
-    test_queue.head = 0;
-    test_queue.count = 0;
+    for (size_t i = 0; i < TEST_QUEUE_SLOTS; i++) {
+        test_queue_t *queue = &test_queues[i];
 
-    return (QueueHandle_t) &test_queue;
+        if (queue->active) {
+            continue;
+        }
+
+        queue->active = true;
+        queue->length = uxQueueLength;
+        queue->item_size = uxItemSize;
+        queue->head = 0;
+        queue->count = 0;
+        return (QueueHandle_t) queue;
+    }
+
+    return NULL;
 }
 
 BaseType_t xQueueSend(QueueHandle_t xQueue, const void *pvItemToQueue, TickType_t xTicksToWait)
@@ -79,4 +99,14 @@ BaseType_t xQueueReceive(QueueHandle_t xQueue, void *pvBuffer, TickType_t xTicks
     queue->count--;
 
     return pdPASS;
+}
+
+void vTaskDelay(TickType_t xTicksToDelay)
+{
+    (void) xTicksToDelay;
+}
+
+TickType_t xTaskGetTickCount(void)
+{
+    return test_tick_count;
 }

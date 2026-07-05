@@ -59,6 +59,9 @@ static void memory_scrub_protect_buffers(volatile uint8_t *area)
 
 void memory_scrub_init(volatile uint8_t *area)
 {
+    seu_counter = 0;
+    seu_total_count = 0;
+
     for (int i = 0; i < SCRUB_SIZE; i++) {
         area[i] = golden_copy[i];
     }

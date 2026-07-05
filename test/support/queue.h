@@ -10,5 +10,6 @@ BaseType_t xQueueSend(QueueHandle_t xQueue, const void *pvItemToQueue, TickType_
 BaseType_t xQueueReceive(QueueHandle_t xQueue, void *pvBuffer, TickType_t xTicksToWait);
 
 void test_freertos_reset(void);
+void test_freertos_set_tick_count(TickType_t ticks);
 
 #endif /* QUEUE_H */

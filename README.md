@@ -285,7 +285,7 @@ git -C test/Unity checkout b706271f3255e33a0e5ec068844462c5fdb5c527
 make test
 ```
 
-Twelve tests cover software memory protection (`test/test_runner.c`). Stubs in `test/support/` replace FreeRTOS and UART for the host build.
+Twenty-seven host tests cover memory protection, system state, memory scrub, and fault injection (`test/test_runner.c`). Stubs in `test/support/` replace FreeRTOS and UART for the host build.
 
 ### Static analysis
 
