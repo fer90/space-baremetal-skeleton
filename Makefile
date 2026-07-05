@@ -67,12 +67,24 @@ TEST_OBJ_DIR = test/obj
 TEST_CFLAGS = -std=c11 -Wall -Wextra -O0 -g \
               -I$(TEST_SUPPORT) -Iinclude -I$(UNITY_DIR)
 
-TEST_OBJ = $(TEST_OBJ_DIR)/test_runner.o \
+TEST_CASE_OBJ = test_runner \
+                test_memory_protection \
+                test_system_state \
+                test_memory_scrub \
+                test_fault_inject \
+                test_state_machine \
+                test_fault_queue \
+                test_watchdog \
+                test_command
+
+TEST_OBJ = $(addprefix $(TEST_OBJ_DIR)/,$(addsuffix .o,$(TEST_CASE_OBJ))) \
+           $(TEST_OBJ_DIR)/test_support.o \
            $(TEST_OBJ_DIR)/unity.o \
            $(TEST_OBJ_DIR)/freertos_stub.o \
            $(TEST_OBJ_DIR)/uart_stub.o \
            $(TEST_OBJ_DIR)/system_state.o \
            $(TEST_OBJ_DIR)/watchdog.o \
+           $(TEST_OBJ_DIR)/command.o \
            $(TEST_OBJ_DIR)/memory_protection.o \
            $(TEST_OBJ_DIR)/memory_scrub.o \
            $(TEST_OBJ_DIR)/fault_queue.o \
@@ -131,6 +143,14 @@ $(TEST_OBJ_DIR)/state_machine.o: src/state_machine.c
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
 $(TEST_OBJ_DIR)/watchdog.o: src/watchdog.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/command.o: src/command.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/test_support.o: test/support/test_support.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 

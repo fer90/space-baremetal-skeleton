@@ -1,6 +1,8 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+#include <stdbool.h>
+
 #include "FreeRTOS.h"
 #include "queue.h"
 
@@ -19,6 +21,7 @@ extern QueueHandle_t xCommandQueue;
 
 void command_init(void);
 BaseType_t command_send(CommandType_t cmd);
+bool command_dispatch_char(char c);
 void vTaskCommandHandler(void *pvParameters);
 void vTaskCommandInput(void *pvParameters);
 

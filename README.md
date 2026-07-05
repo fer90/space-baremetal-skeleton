@@ -216,8 +216,9 @@ src/
   uart.c              # MMIO UART (QEMU virt console)
 FreeRTOS/             # Vendored FreeRTOS sources (RISC-V GCC port, heap_4)
 test/
-  test_runner.c       # Host-side Unity tests (memory protection)
-  support/            # FreeRTOS/UART stubs for host build
+  test_runner.c       # Unity entry point (RUN_TEST list)
+  test_*.c            # Per-subsystem test suites
+  support/            # FreeRTOS stubs, UART capture, shared setUp/tearDown
 scripts/
   check_firmware_size.sh  # CI size gate for release/debug builds
   qemu_smoke.sh           # CI QEMU UART assertions (also: make qemu-smoke)
@@ -286,7 +287,7 @@ git -C test/Unity checkout b706271f3255e33a0e5ec068844462c5fdb5c527
 make test
 ```
 
-Forty-three host tests cover memory protection, system state, state-machine policy, watchdog FDIR logic, memory scrub, fault injection, and the fault queue (`test/test_runner.c`). Stubs in `test/support/` replace FreeRTOS and UART for the host build.
+Forty-nine host tests cover memory protection, system state, state-machine policy, watchdog FDIR logic, memory scrub, fault injection, the fault queue, and UART command dispatch. Tests live under `test/test_*.c` with a thin `test/test_runner.c`; stubs in `test/support/` replace FreeRTOS and capture UART output for assertions.
 
 ### Static analysis
 

@@ -1,6 +1,15 @@
+#include "FreeRTOS.h"
+#include "task.h"
 #include "command.h"
-#include "common.h"
+#include "log.h"
+#include "uart.h"
 #include "system_state.h"
+#include "fault_inject.h"
+#include "memory_scrub.h"
+#include "memory_protection.h"
+#ifdef DEBUG
+#include "telemetry.h"
+#endif
 
 QueueHandle_t xCommandQueue = NULL;
 
@@ -31,7 +40,7 @@ static void command_print_help(void)
     uart_puts(LOG_PREFIX_CMD "  h  show this help\r\n");
 }
 
-static bool command_dispatch_char(char c)
+bool command_dispatch_char(char c)
 {
     CommandType_t cmd;
     BaseType_t sent;
@@ -106,12 +115,9 @@ void vTaskCommandHandler(void *pvParameters)
     (void) pvParameters;
     CommandType_t cmd;
 
-    for (;;)
-    {
-        if (xQueueReceive(xCommandQueue, &cmd, portMAX_DELAY) == pdPASS)
-        {
-            switch (cmd)
-            {
+    for (;;) {
+        if (xQueueReceive(xCommandQueue, &cmd, portMAX_DELAY) == pdPASS) {
+            switch (cmd) {
                 case CMD_STATUS:
 #ifdef DEBUG
                     telemetry_print_snapshot();
