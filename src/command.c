@@ -8,6 +8,7 @@
 #include "memory_scrub.h"
 #include "memory_protection.h"
 #include "safe_policy.h"
+#include "event_log.h"
 #ifdef DEBUG
 #include "telemetry.h"
 #endif
@@ -39,6 +40,7 @@ static void command_print_help(void)
     uart_puts(LOG_PREFIX_CMD "  v  print memory protection violation count\r\n");
     uart_puts(LOG_PREFIX_CMD "  u  print SEU count\r\n");
     uart_puts(LOG_PREFIX_CMD "  x  toggle automatic fault injection\r\n");
+    uart_puts(LOG_PREFIX_CMD "  l  dump flight recorder log\r\n");
     uart_puts(LOG_PREFIX_CMD "  h  show this help\r\n");
 }
 
@@ -75,6 +77,9 @@ bool command_dispatch_char(char c)
         case 'x':
             cmd = CMD_TOGGLE_FAULT_INJECT;
             break;
+        case 'l':
+            cmd = CMD_DUMP_EVENT_LOG;
+            break;
         case 'h':
         case '?':
             command_print_help();
@@ -102,15 +107,22 @@ void command_handle(CommandType_t cmd)
             break;
 
         case CMD_GO_NOMINAL:
+            event_log_record_operator('n');
             system_state_request_change(SYSTEM_STATE_NOMINAL, 0x10);
             break;
 
         case CMD_GO_DEGRADED:
+            event_log_record_operator('d');
             system_state_request_change(SYSTEM_STATE_DEGRADED, 0x10);
             break;
 
         case CMD_GO_SAFE:
+            event_log_record_operator('a');
             system_state_request_change(SYSTEM_STATE_SAFE, 0x10);
+            break;
+
+        case CMD_DUMP_EVENT_LOG:
+            event_log_dump();
             break;
 
         case CMD_INJECT_FAULT:

@@ -73,6 +73,11 @@ void test_safe_policy_blocks_background_scrub_in_safe(void);
 void test_safe_policy_suppresses_heartbeat_uart_in_safe(void);
 void test_safe_policy_blocks_seu_escalation_in_safe(void);
 
+void test_event_log_init_records_boot_entry(void);
+void test_event_log_state_change_roundtrip(void);
+void test_event_log_ring_overwrites_oldest(void);
+void test_event_log_dump_prints_header_and_entries(void);
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -149,6 +154,11 @@ int main(void)
     RUN_TEST(test_safe_policy_blocks_background_scrub_in_safe);
     RUN_TEST(test_safe_policy_suppresses_heartbeat_uart_in_safe);
     RUN_TEST(test_safe_policy_blocks_seu_escalation_in_safe);
+
+    RUN_TEST(test_event_log_init_records_boot_entry);
+    RUN_TEST(test_event_log_state_change_roundtrip);
+    RUN_TEST(test_event_log_ring_overwrites_oldest);
+    RUN_TEST(test_event_log_dump_prints_header_and_entries);
 
     return UNITY_END();
 }

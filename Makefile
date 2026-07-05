@@ -31,6 +31,7 @@ CSRC = src/main.c src/tasks.c src/system.c src/system_state.c src/state_machine.
        src/command.c src/uart.c \
        src/string.c src/watchdog.c src/memory_protection.c src/golden_copy.c src/memory_scrub.c src/fault_inject.c src/fault_queue.c \
        src/isr_stack_guard.c src/telemetry.c src/timer.c src/interrupt.c src/safe_policy.c \
+       src/event_log.c \
        $(FREERTOS_SRC)
 ASRC = src/startup.s
 
@@ -100,7 +101,8 @@ TEST_CASE_OBJ = test_runner \
                 test_fault_queue \
                 test_watchdog \
                 test_command \
-                test_safe_policy
+                test_safe_policy \
+                test_event_log
 
 TEST_OBJ = $(addprefix $(TEST_OBJ_DIR)/,$(addsuffix .o,$(TEST_CASE_OBJ))) \
            $(TEST_OBJ_DIR)/test_support.o \
@@ -116,7 +118,8 @@ TEST_OBJ = $(addprefix $(TEST_OBJ_DIR)/,$(addsuffix .o,$(TEST_CASE_OBJ))) \
            $(TEST_OBJ_DIR)/fault_inject.o \
            $(TEST_OBJ_DIR)/state_machine.o \
            $(TEST_OBJ_DIR)/golden_copy.o \
-           $(TEST_OBJ_DIR)/safe_policy.o
+           $(TEST_OBJ_DIR)/safe_policy.o \
+           $(TEST_OBJ_DIR)/event_log.o
 
 test_runner: $(TEST_OBJ)
 	$(HOST_CC) $(TEST_CFLAGS) -o $@ $^
@@ -179,6 +182,10 @@ $(TEST_OBJ_DIR)/command.o: src/command.c
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
 $(TEST_OBJ_DIR)/safe_policy.o: src/safe_policy.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/event_log.o: src/event_log.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 

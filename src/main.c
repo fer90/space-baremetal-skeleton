@@ -4,6 +4,7 @@
 #include "log.h"
 #include "system.h"
 #include "tasks.h"
+#include "event_log.h"
 
 extern void freertos_risc_v_trap_handler(void);
 
@@ -25,6 +26,7 @@ int main(void)
     }
 
     command_init();
+    event_log_init();
     memory_protection_init();
     memory_protection_register_critical_text();
     uart_puts("\r\n=== FreeRTOS Migration Started ===\r\n");

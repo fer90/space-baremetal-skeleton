@@ -1,5 +1,6 @@
 #include "common.h"
 #include "safe_policy.h"
+#include "event_log.h"
 
 volatile uint8_t scrub_area[SCRUB_SIZE];
 
@@ -114,6 +115,7 @@ bool memory_scrub_fix_event(volatile uint8_t *area, const FaultEvent_t *event)
     uart_puts(" bit ");
     uart_put_hex(event->bit);
     uart_puts("\r\n");
+    event_log_record_seu_corrected(idx, event->bit);
     memory_scrub_record_seu();
     return true;
 }

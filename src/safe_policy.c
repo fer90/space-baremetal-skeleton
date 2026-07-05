@@ -3,6 +3,7 @@
 #include "fault_inject.h"
 #include "log.h"
 #include "uart.h"
+#include "event_log.h"
 
 #define WATCHDOG_SAFE_EXPECTED_BITS \
     (WATCHDOG_BIT_HEARTBEAT | WATCHDOG_BIT_MEMSCRUB)
@@ -38,6 +39,7 @@ bool safe_policy_allows_seu_escalation(SystemState_t state)
 
 void safe_policy_on_enter(void)
 {
+    event_log_record_safe_policy(true);
     (void) fault_inject_set_enabled(false);
     uart_puts(LOG_PREFIX_SAFE "policy active: auto-inject off, background scrub off, ");
     uart_puts("watchdog expects Heartbeat+MemScrub only, heartbeat log suppressed\r\n");
@@ -45,6 +47,7 @@ void safe_policy_on_enter(void)
 
 void safe_policy_on_exit(void)
 {
+    event_log_record_safe_policy(false);
     uart_puts(LOG_PREFIX_SAFE "policy cleared: nominal operations restored ");
     uart_puts("(fault inject remains off until 'x')\r\n");
 }

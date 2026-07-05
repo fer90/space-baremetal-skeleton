@@ -8,6 +8,7 @@
 #include "critical_exec.h"
 #include "log.h"
 #include "uart.h"
+#include "event_log.h"
 
 TaskHandle_t xWatchdogTaskHandle = NULL;
 
@@ -58,9 +59,9 @@ void watchdog_evaluate_cycle(uint32_t received_bits,
     }
 }
 
-static void watchdog_print_missing_bits(uint32_t received)
+static void watchdog_print_missing_bits(uint32_t received, uint32_t expected_bits)
 {
-    uint32_t missing = WATCHDOG_EXPECTED_BITS & ~received;
+    uint32_t missing = expected_bits & ~received;
 
     uart_puts(LOG_PREFIX_ERROR "WATCHDOG TIMEOUT missing:");
     if (missing & WATCHDOG_BIT_HEARTBEAT) {
@@ -100,7 +101,10 @@ void vTaskWatchdog(void *pvParameters)
         }
 
         if ((received & expected_bits) != expected_bits) {
-            watchdog_print_missing_bits(received);
+            const uint32_t missing = expected_bits & ~received;
+
+            watchdog_print_missing_bits(received, expected_bits);
+            event_log_record_watchdog_timeout(missing, current_state);
         }
 
         watchdog_evaluate_cycle(received, expected_bits, current_state, &successful_cycles);

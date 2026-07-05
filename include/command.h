@@ -16,6 +16,7 @@ typedef enum {
     CMD_PRINT_VIOLATIONS,
     CMD_PRINT_SEU_COUNT,
     CMD_TOGGLE_FAULT_INJECT,
+    CMD_DUMP_EVENT_LOG,
 } CommandType_t;
 
 extern QueueHandle_t xCommandQueue;

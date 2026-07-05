@@ -130,6 +130,8 @@ Violations are logged with `[VIOLATION]`, counted, and trigger DEGRADED at 3 hit
 | `s` | Print DEBUG telemetry snapshot (`[TELEMETRY]` block) |
 | `n` | Request NOMINAL state |
 | `d` | Request DEGRADED state |
+| `a` | Request SAFE state |
+| `l` | Dump flight recorder log (`[REC]` entries) |
 | `f` | Inject one fault immediately |
 | `r` | Force a full memory scrub |
 | `v` | Print memory-protection violation count |
@@ -149,6 +151,7 @@ UART output uses consistent prefixes defined in `include/log.h`:
 | `[STATE]` | System state announcements and transitions |
 | `[VIOLATION]` | Memory-protection violations and blocked accesses |
 | `[CMD]` | Command input, help, and command responses |
+| `[REC]` | Flight recorder dump (`l` command) |
 | `[TELEMETRY]` | DEBUG telemetry snapshot lines |
 
 Fatal boot failures call `system_halt(reason)`:
@@ -204,6 +207,7 @@ src/
   watchdog.c          # Notification-based watchdog + recovery
   state_machine.c     # State transition task
   safe_policy.c       # SAFE-mode capability gating
+  event_log.c         # Flight recorder ring buffer (UART l)
   system_state.c      # State request queue
   memory_scrub.c      # Scrub logic + scrub_area buffer
   golden_copy.c       # const golden reference in .rodata
@@ -310,7 +314,7 @@ git -C test/Unity checkout b706271f3255e33a0e5ec068844462c5fdb5c527
 make test
 ```
 
-Sixty-three host tests cover memory protection, system state, state-machine policy, SAFE policy, watchdog FDIR logic, memory scrub, fault injection, the fault queue, and UART command dispatch plus handler execution. Tests live under `test/test_*.c` with a thin `test/test_runner.c`; stubs in `test/support/` replace FreeRTOS and capture UART output for assertions.
+Sixty-seven host tests cover memory protection, system state, state-machine policy, SAFE policy, flight recorder, watchdog FDIR logic, memory scrub, fault injection, the fault queue, and UART command dispatch plus handler execution. Tests live under `test/test_*.c` with a thin `test/test_runner.c`; stubs in `test/support/` replace FreeRTOS and capture UART output for assertions.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for boot flow, IPC patterns, SAFE policy details, and a step-by-step guide to adding a new task.
 

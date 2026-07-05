@@ -55,6 +55,24 @@ When the system enters **SAFE**, `safe_policy_on_enter()` in `src/safe_policy.c`
 
 Policy helpers are pure functions of `SystemState_t` where possible so they can be unit-tested on the host. Tasks call `system_state_get()` each cycle rather than caching state.
 
+## Flight recorder (`event_log`)
+
+A fixed-size in-RAM ring buffer (48 entries) records **discrete troubleshooting events** — not a UART mirror. Each entry stores type, tick, and a few bytes of payload (reason codes, missing watchdog bits, SEU location, etc.).
+
+| Event type | Recorded when |
+|------------|---------------|
+| `BOOT` | `event_log_init()` at startup |
+| `STATE_CHANGE` | State machine applies a transition |
+| `WDT_TIMEOUT` | Watchdog cycle incomplete (uses current expected bits) |
+| `SEU_CORRECTED` | MemScrub fixes a targeted bit flip |
+| `MPU_THRESHOLD` | Memory-protection violations hit the degrade threshold |
+| `SAFE_ENTER` / `SAFE_EXIT` | SAFE policy applied or cleared |
+| `OP` | Operator UART state commands (`d`, `a`, `n`) |
+
+Dump with UART **`l`** — prints `[REC]` lines. Especially useful in **SAFE** mode where heartbeat and scrub chatter are suppressed: connect after a fault, enter SAFE, dump the log, then recover with `n` when satisfied.
+
+Storage is ~576 bytes in `.bss`; oldest entries are overwritten when the ring fills. Power loss clears the log (no NVM in this skeleton).
+
 ## Logging
 
 UART output uses fixed prefixes from `include/log.h` (`[STATE]`, `[CMD]`, `[ERROR]`, `[SAFE]`, etc.). Keep new messages consistent so CI QEMU scripts and operators can grep logs reliably.

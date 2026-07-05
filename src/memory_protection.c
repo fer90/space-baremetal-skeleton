@@ -2,6 +2,7 @@
 #include "log.h"
 #include "system_state.h"
 #include "uart.h"
+#include "event_log.h"
 
 #define MAX_PROTECTED_REGIONS              8
 #define MEM_PROT_VIOLATION_THRESHOLD       3
@@ -20,6 +21,9 @@ static bool region_overlaps(const memory_region_t *region, uintptr_t address, si
 static void record_violation(void)
 {
     violation_count++;
+    if (violation_count == MEM_PROT_VIOLATION_THRESHOLD) {
+        event_log_record_mem_prot_threshold(violation_count);
+    }
     if (violation_count >= MEM_PROT_VIOLATION_THRESHOLD) {
         (void) system_state_request_change(SYSTEM_STATE_DEGRADED, 0x04);
     }

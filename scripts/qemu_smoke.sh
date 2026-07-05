@@ -15,8 +15,8 @@ LOG="$(mktemp)"
 trap 'rm -f "$LOG"' EXIT
 
 set +e
-# h=help, d=DEGRADED, a=SAFE (policy), n=NOMINAL recovery
-( sleep 3; printf 'hda'; sleep 2; printf 'n' ) | timeout 20s qemu-system-riscv64 \
+# h=help, d=DEGRADED, a=SAFE, n=NOMINAL recovery, l=flight recorder dump
+( sleep 3; printf 'hdan'; sleep 2; printf 'l' ) | timeout 20s qemu-system-riscv64 \
     -machine virt -cpu rv64 -nographic -kernel "$KERNEL_BIN" -bios none >"$LOG" 2>&1
 code=$?
 set -e
@@ -49,5 +49,9 @@ require_pattern "[STATE] changed to DEGRADED" "missing DEGRADED transition (UART
 require_pattern "[STATE] changed to SAFE" "missing SAFE transition (UART a)"
 require_pattern "[SAFE] policy active" "missing SAFE policy banner"
 require_pattern "[STATE] changed to NOMINAL" "missing NOMINAL transition (UART n)"
+require_pattern "[REC] flight log (" "missing flight recorder dump (UART l)"
+require_pattern "NOMINAL->DEGRADED" "missing recorder DEGRADED transition"
+require_pattern "DEGRADED->SAFE" "missing recorder SAFE transition"
+require_pattern "SAFE_ENTER" "missing recorder SAFE_ENTER entry"
 
 echo "QEMU smoke test OK (${KERNEL_BIN})"

@@ -2,6 +2,7 @@
 #include "task.h"
 #include "state_machine.h"
 #include "safe_policy.h"
+#include "event_log.h"
 #include "log.h"
 #include "uart.h"
 
@@ -68,6 +69,7 @@ void vTaskStateMachine(void *pvParameters)
 
     gSystemState = SYSTEM_STATE_NOMINAL;
     uart_puts(LOG_PREFIX_STATE "NOMINAL\r\n");
+    event_log_record_state_change(SYSTEM_STATE_BOOT, SYSTEM_STATE_NOMINAL, 0u);
 
     for (;;) {
         if (xQueueReceive(xStateRequestQueue, &request, pdMS_TO_TICKS(1000)) == pdPASS) {
@@ -78,6 +80,7 @@ void vTaskStateMachine(void *pvParameters)
 
                 gSystemState = current;
                 state_machine_log_transition(current);
+                event_log_record_state_change(previous, current, request.reason_code);
 
                 if (current == SYSTEM_STATE_SAFE && previous != SYSTEM_STATE_SAFE) {
                     safe_policy_on_enter();
