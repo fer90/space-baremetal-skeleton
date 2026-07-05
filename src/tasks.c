@@ -10,6 +10,8 @@
 #include "memory_scrub.h"
 #include "fault_inject.h"
 #include "command.h"
+#include "safe_policy.h"
+#include "system_state.h"
 #ifdef DEBUG
 #include "isr_stack_guard.h"
 #include "telemetry.h"
@@ -27,7 +29,9 @@ static void vTaskHeartbeat(void *pvParameters)
     (void) pvParameters;
 
     for (;;) {
-        uart_puts("HEARTBEAT from FreeRTOS task\r\n");
+        if (safe_policy_allows_heartbeat_uart(system_state_get())) {
+            uart_puts("HEARTBEAT from FreeRTOS task\r\n");
+        }
         watchdog_kick(WATCHDOG_BIT_HEARTBEAT);
         vTaskDelay(pdMS_TO_TICKS(1000));
     }

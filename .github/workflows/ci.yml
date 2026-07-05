@@ -31,11 +31,16 @@ jobs:
       - name: Build release firmware
         run: |
           make clean && make
-          chmod +x scripts/check_firmware_size.sh
+          chmod +x scripts/check_firmware_size.sh scripts/report_memory_map.sh
           scripts/check_firmware_size.sh release dist/release/kernel.elf
+          scripts/report_memory_map.sh release dist/release/kernel.elf dist/release/kernel.map \
+            | tee dist/release/memory_report.txt
 
       - name: Host tests and static analysis
-        run: make check
+        run: |
+          mkdir -p dist/ci-logs
+          make test 2>&1 | tee dist/ci-logs/test.log
+          make lint 2>&1 | tee dist/ci-logs/lint.log
 
       - name: QEMU smoke test (release)
         run: make qemu-smoke KERNEL_BIN=dist/release/kernel.bin
@@ -47,6 +52,8 @@ jobs:
         run: |
           make debug
           scripts/check_firmware_size.sh debug dist/debug/kernel.elf
+          scripts/report_memory_map.sh debug dist/debug/kernel.elf dist/debug/kernel.map \
+            | tee dist/debug/memory_report.txt
 
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v7
@@ -55,3 +62,11 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Upload CI logs
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-logs-${{ github.sha }}
+          path: dist/ci-logs/
+          if-no-files-found: error
+          retention-days: 14

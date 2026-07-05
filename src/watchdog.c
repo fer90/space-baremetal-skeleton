@@ -1,6 +1,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "watchdog.h"
+#include "safe_policy.h"
 #include "system_state.h"
 #include "system_defs.h"
 #include "memory_protection.h"
@@ -28,6 +29,7 @@ void watchdog_kick(uint32_t taskBit)
 }
 
 void watchdog_evaluate_cycle(uint32_t received_bits,
+                             uint32_t expected_bits,
                              SystemState_t current_state,
                              uint32_t *successful_cycles)
 {
@@ -35,7 +37,7 @@ void watchdog_evaluate_cycle(uint32_t received_bits,
         return;
     }
 
-    if ((received_bits & WATCHDOG_EXPECTED_BITS) == WATCHDOG_EXPECTED_BITS) {
+    if ((received_bits & expected_bits) == expected_bits) {
         if (current_state == SYSTEM_STATE_DEGRADED) {
             (*successful_cycles)++;
 
@@ -82,9 +84,11 @@ void vTaskWatchdog(void *pvParameters)
 
     for (;;) {
         uint32_t received = 0;
+        const SystemState_t current_state = system_state_get();
+        const uint32_t expected_bits = safe_policy_watchdog_expected_bits(current_state);
         const TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(WATCHDOG_TIMEOUT_MS);
 
-        while ((received & WATCHDOG_EXPECTED_BITS) != WATCHDOG_EXPECTED_BITS) {
+        while ((received & expected_bits) != expected_bits) {
             uint32_t bits = 0;
             TickType_t remaining = deadline - xTaskGetTickCount();
 
@@ -95,10 +99,10 @@ void vTaskWatchdog(void *pvParameters)
             received |= bits;
         }
 
-        if ((received & WATCHDOG_EXPECTED_BITS) != WATCHDOG_EXPECTED_BITS) {
+        if ((received & expected_bits) != expected_bits) {
             watchdog_print_missing_bits(received);
         }
 
-        watchdog_evaluate_cycle(received, system_state_get(), &successful_cycles);
+        watchdog_evaluate_cycle(received, expected_bits, current_state, &successful_cycles);
     }
 }

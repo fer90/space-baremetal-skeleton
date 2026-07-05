@@ -1,6 +1,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "state_machine.h"
+#include "safe_policy.h"
 #include "log.h"
 #include "uart.h"
 
@@ -73,8 +74,16 @@ void vTaskStateMachine(void *pvParameters)
             SystemState_t current = gSystemState;
 
             if (state_machine_apply_request(&current, &request)) {
+                const SystemState_t previous = gSystemState;
+
                 gSystemState = current;
                 state_machine_log_transition(current);
+
+                if (current == SYSTEM_STATE_SAFE && previous != SYSTEM_STATE_SAFE) {
+                    safe_policy_on_enter();
+                } else if (previous == SYSTEM_STATE_SAFE && current != SYSTEM_STATE_SAFE) {
+                    safe_policy_on_exit();
+                }
             }
         }
     }

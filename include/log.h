@@ -6,5 +6,6 @@
 #define LOG_PREFIX_VIOLATION  "[VIOLATION] "
 #define LOG_PREFIX_CMD        "[CMD] "
 #define LOG_PREFIX_TELEMETRY  "[TELEMETRY] "
+#define LOG_PREFIX_SAFE       "[SAFE] "
 
 #endif /* LOG_H */

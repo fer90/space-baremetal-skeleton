@@ -7,6 +7,7 @@
 #include "fault_inject.h"
 #include "memory_scrub.h"
 #include "memory_protection.h"
+#include "safe_policy.h"
 #ifdef DEBUG
 #include "telemetry.h"
 #endif
@@ -32,6 +33,7 @@ static void command_print_help(void)
     uart_puts(LOG_PREFIX_CMD "  s  status (DEBUG telemetry snapshot)\r\n");
     uart_puts(LOG_PREFIX_CMD "  n  request NOMINAL state\r\n");
     uart_puts(LOG_PREFIX_CMD "  d  request DEGRADED state\r\n");
+    uart_puts(LOG_PREFIX_CMD "  a  request SAFE state\r\n");
     uart_puts(LOG_PREFIX_CMD "  f  inject one fault now\r\n");
     uart_puts(LOG_PREFIX_CMD "  r  force full memory scrub\r\n");
     uart_puts(LOG_PREFIX_CMD "  v  print memory protection violation count\r\n");
@@ -54,6 +56,9 @@ bool command_dispatch_char(char c)
             break;
         case 'd':
             cmd = CMD_GO_DEGRADED;
+            break;
+        case 'a':
+            cmd = CMD_GO_SAFE;
             break;
         case 'f':
             cmd = CMD_INJECT_FAULT;
@@ -104,7 +109,15 @@ void command_handle(CommandType_t cmd)
             system_state_request_change(SYSTEM_STATE_DEGRADED, 0x10);
             break;
 
+        case CMD_GO_SAFE:
+            system_state_request_change(SYSTEM_STATE_SAFE, 0x10);
+            break;
+
         case CMD_INJECT_FAULT:
+            if (!safe_policy_allows_fault_inject(system_state_get())) {
+                uart_puts(LOG_PREFIX_CMD "fault inject blocked in SAFE\r\n");
+                break;
+            }
             inject_random_fault(scrub_area);
             break;
 

@@ -30,7 +30,7 @@ FREERTOS_SRC = \
 CSRC = src/main.c src/tasks.c src/system.c src/system_state.c src/state_machine.c src/critical_exec.c \
        src/command.c src/uart.c \
        src/string.c src/watchdog.c src/memory_protection.c src/golden_copy.c src/memory_scrub.c src/fault_inject.c src/fault_queue.c \
-       src/isr_stack_guard.c src/telemetry.c src/timer.c src/interrupt.c \
+       src/isr_stack_guard.c src/telemetry.c src/timer.c src/interrupt.c src/safe_policy.c \
        $(FREERTOS_SRC)
 ASRC = src/startup.s
 
@@ -99,7 +99,8 @@ TEST_CASE_OBJ = test_runner \
                 test_state_machine \
                 test_fault_queue \
                 test_watchdog \
-                test_command
+                test_command \
+                test_safe_policy
 
 TEST_OBJ = $(addprefix $(TEST_OBJ_DIR)/,$(addsuffix .o,$(TEST_CASE_OBJ))) \
            $(TEST_OBJ_DIR)/test_support.o \
@@ -114,7 +115,8 @@ TEST_OBJ = $(addprefix $(TEST_OBJ_DIR)/,$(addsuffix .o,$(TEST_CASE_OBJ))) \
            $(TEST_OBJ_DIR)/fault_queue.o \
            $(TEST_OBJ_DIR)/fault_inject.o \
            $(TEST_OBJ_DIR)/state_machine.o \
-           $(TEST_OBJ_DIR)/golden_copy.o
+           $(TEST_OBJ_DIR)/golden_copy.o \
+           $(TEST_OBJ_DIR)/safe_policy.o
 
 test_runner: $(TEST_OBJ)
 	$(HOST_CC) $(TEST_CFLAGS) -o $@ $^
@@ -176,6 +178,10 @@ $(TEST_OBJ_DIR)/command.o: src/command.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
+$(TEST_OBJ_DIR)/safe_policy.o: src/safe_policy.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
 $(TEST_OBJ_DIR)/test_support.o: test/support/test_support.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
@@ -199,6 +205,7 @@ lint:
 
 clean:
 	rm -rf build dist $(TEST_OBJ_DIR) test_runner
+	find src FreeRTOS/Source -name '*.o' -delete
 
 qemu: $(KERNEL_BIN)
 	qemu-system-riscv64 -machine virt -cpu rv64 -nographic -kernel $(KERNEL_BIN) -bios none

@@ -9,6 +9,7 @@
 
 void watchdog_kick(uint32_t taskBit);
 void watchdog_evaluate_cycle(uint32_t received_bits,
+                             uint32_t expected_bits,
                              SystemState_t current_state,
                              uint32_t *successful_cycles);
 void vTaskWatchdog(void *pvParameters);

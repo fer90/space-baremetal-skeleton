@@ -1,4 +1,5 @@
 #include "common.h"
+#include "safe_policy.h"
 
 volatile uint8_t scrub_area[SCRUB_SIZE];
 
@@ -37,6 +38,11 @@ static bool scrub_write(volatile uint8_t *area, uint32_t idx, uint8_t value)
 static void memory_scrub_record_seu(void)
 {
     seu_total_count++;
+
+    if (!safe_policy_allows_seu_escalation(system_state_get())) {
+        return;
+    }
+
     seu_counter++;
     if (seu_counter >= SEU_THRESHOLD_FOR_DEGRADED) {
         (void) system_state_request_change(SYSTEM_STATE_DEGRADED, 0x02);
@@ -150,7 +156,7 @@ void vTaskMemoryScrub(void *pvParameters)
             (void) memory_scrub_fix_event(scrub_area, &event);
         }
 
-        if (!had_event) {
+        if (!had_event && safe_policy_allows_background_scrub(system_state_get())) {
             memory_scrub(scrub_area);
         }
 

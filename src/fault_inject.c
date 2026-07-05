@@ -1,4 +1,5 @@
 #include "common.h"
+#include "safe_policy.h"
 
 static volatile bool fault_inject_enabled = true;
 
@@ -50,9 +51,12 @@ void vTaskFaultInject(void *pvParameters) {
 
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(3000));
-        watchdog_kick(WATCHDOG_BIT_FAULTINJECT);
-        if (fault_inject_enabled) {
-            inject_random_fault(scrub_area);
+
+        if (safe_policy_allows_fault_inject(system_state_get())) {
+            watchdog_kick(WATCHDOG_BIT_FAULTINJECT);
+            if (fault_inject_enabled) {
+                inject_random_fault(scrub_area);
+            }
         }
     }
 }

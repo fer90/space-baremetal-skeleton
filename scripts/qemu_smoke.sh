@@ -15,8 +15,8 @@ LOG="$(mktemp)"
 trap 'rm -f "$LOG"' EXIT
 
 set +e
-# h = help, d = request DEGRADED, n = request NOMINAL (exercises command + state paths)
-( sleep 3; printf 'hdn' ) | timeout 15s qemu-system-riscv64 \
+# h=help, d=DEGRADED, a=SAFE (policy), n=NOMINAL recovery
+( sleep 3; printf 'hda'; sleep 2; printf 'n' ) | timeout 20s qemu-system-riscv64 \
     -machine virt -cpu rv64 -nographic -kernel "$KERNEL_BIN" -bios none >"$LOG" 2>&1
 code=$?
 set -e
@@ -46,6 +46,8 @@ require_pattern "Memory scrub initialized (EDAC Simulation)" "missing scrub init
 require_pattern "[CMD] input ready" "missing command input"
 require_pattern "[CMD] Commands:" "missing help output"
 require_pattern "[STATE] changed to DEGRADED" "missing DEGRADED transition (UART d)"
+require_pattern "[STATE] changed to SAFE" "missing SAFE transition (UART a)"
+require_pattern "[SAFE] policy active" "missing SAFE policy banner"
 require_pattern "[STATE] changed to NOMINAL" "missing NOMINAL transition (UART n)"
 
 echo "QEMU smoke test OK (${KERNEL_BIN})"

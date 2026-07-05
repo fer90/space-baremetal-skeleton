@@ -48,6 +48,7 @@ void test_watchdog_timeout_from_degraded_requests_safe(void);
 void test_watchdog_complete_cycle_in_degraded_increments_recovery_counter(void);
 void test_watchdog_fifth_complete_cycle_requests_nominal_recovery(void);
 void test_watchdog_complete_cycle_from_safe_resets_recovery_counter(void);
+void test_watchdog_timeout_from_safe_does_not_request_state_change(void);
 void test_watchdog_kick_notifies_watchdog_task(void);
 
 void test_command_dispatch_help_prints_command_list(void);
@@ -64,6 +65,13 @@ void test_command_handle_print_seu_count_reports_total(void);
 void test_command_handle_toggle_fault_inject_prints_state(void);
 void test_command_handle_status_requires_debug_build(void);
 void test_command_handle_inject_fault_queues_scrub_event(void);
+
+void test_safe_policy_watchdog_expected_bits_nominal(void);
+void test_safe_policy_watchdog_expected_bits_safe_is_minimal(void);
+void test_safe_policy_blocks_fault_inject_in_safe(void);
+void test_safe_policy_blocks_background_scrub_in_safe(void);
+void test_safe_policy_suppresses_heartbeat_uart_in_safe(void);
+void test_safe_policy_blocks_seu_escalation_in_safe(void);
 
 int main(void)
 {
@@ -117,6 +125,7 @@ int main(void)
     RUN_TEST(test_watchdog_complete_cycle_in_degraded_increments_recovery_counter);
     RUN_TEST(test_watchdog_fifth_complete_cycle_requests_nominal_recovery);
     RUN_TEST(test_watchdog_complete_cycle_from_safe_resets_recovery_counter);
+    RUN_TEST(test_watchdog_timeout_from_safe_does_not_request_state_change);
     RUN_TEST(test_watchdog_kick_notifies_watchdog_task);
 
     RUN_TEST(test_command_dispatch_help_prints_command_list);
@@ -133,6 +142,13 @@ int main(void)
     RUN_TEST(test_command_handle_toggle_fault_inject_prints_state);
     RUN_TEST(test_command_handle_status_requires_debug_build);
     RUN_TEST(test_command_handle_inject_fault_queues_scrub_event);
+
+    RUN_TEST(test_safe_policy_watchdog_expected_bits_nominal);
+    RUN_TEST(test_safe_policy_watchdog_expected_bits_safe_is_minimal);
+    RUN_TEST(test_safe_policy_blocks_fault_inject_in_safe);
+    RUN_TEST(test_safe_policy_blocks_background_scrub_in_safe);
+    RUN_TEST(test_safe_policy_suppresses_heartbeat_uart_in_safe);
+    RUN_TEST(test_safe_policy_blocks_seu_escalation_in_safe);
 
     return UNITY_END();
 }

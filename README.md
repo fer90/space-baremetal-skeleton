@@ -92,9 +92,10 @@ States: **BOOT** → **NOMINAL** → **DEGRADED** → **SAFE** (monotonic escala
 | 5 SEUs corrected (rolling window) | DEGRADED | `0x02` |
 | 5 successful watchdog cycles in DEGRADED | NOMINAL | `0x03` |
 | 3 memory-protection violations | DEGRADED | `0x04` |
-| UART `n` / `d` | NOMINAL / DEGRADED | `0x10` |
+| UART `n` / `d` / `a` | NOMINAL / DEGRADED / SAFE | `0x10` |
+| Watchdog timeout (already SAFE) | (no further escalation) | `0x01` |
 
-State changes are logged with the `[STATE]` prefix.
+State changes are logged with the `[STATE]` prefix. Entering **SAFE** applies the survival policy described in [ARCHITECTURE.md](ARCHITECTURE.md#system-states-and-safe-policy) (`[SAFE]` log prefix).
 
 ### Watchdog
 
@@ -202,6 +203,7 @@ src/
   tasks.c             # task_configs[] table, tasks_create_all()
   watchdog.c          # Notification-based watchdog + recovery
   state_machine.c     # State transition task
+  safe_policy.c       # SAFE-mode capability gating
   system_state.c      # State request queue
   memory_scrub.c      # Scrub logic + scrub_area buffer
   golden_copy.c       # const golden reference in .rodata
@@ -221,11 +223,17 @@ test/
   support/            # FreeRTOS stubs, UART capture, shared setUp/tearDown
 scripts/
   check_firmware_size.sh  # CI size gate for release/debug builds
+  report_memory_map.sh    # Flash/RAM summary from kernel.elf + kernel.map
   qemu_smoke.sh           # CI QEMU UART assertions (make qemu-smoke)
   qemu_soak.sh            # 30s run; fails on [ERROR] (make qemu-soak)
+build/
+  release/            # Object files for `make`
+  debug/              # Object files for `make debug` (-DDEBUG)
 dist/
-  release/            # Default `make` outputs: kernel.elf, kernel.bin, kernel.map, size.txt
-  debug/              # `make debug` outputs (same layout)
+  release/            # kernel.elf, kernel.bin, kernel.map, size.txt, memory_report.txt
+  debug/              # Same layout for DEBUG builds
+  ci-logs/            # Host test and lint logs (CI artifacts)
+ARCHITECTURE.md       # Boot flow, IPC, SAFE policy, how to add a task
 linker.ld             # Loads at 0x80000000; separate RX/RW ELF segments
 cppcheck-suppressions.txt # Global cppcheck suppressions (see make lint)
 .github/workflows/ci.yml  # Build, test, lint, QEMU smoke, artifact upload
@@ -235,10 +243,10 @@ cppcheck-suppressions.txt # Global cppcheck suppressions (see make lint)
 
 Every push to `main`/`master` and every pull request runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
 
-1. Release and DEBUG firmware builds with size checks
+1. Release and DEBUG firmware builds with size checks and memory-map reports
 2. Firmware artifacts under `dist/release/` and `dist/debug/` — uploaded per commit
-3. Host tests + static analysis (`make check`)
-4. QEMU smoke (`make qemu-smoke`) — boot, help, UART `d`/`n` state transitions
+3. Host tests + static analysis (`make check`); logs uploaded as `ci-logs-*` artifacts
+4. QEMU smoke (`make qemu-smoke`) — boot, help, UART `d`/`a`/`n` state + SAFE policy
 5. QEMU soak (`make qemu-soak`) — 30s run, no `[ERROR]` lines
 
 Reproduce locally before pushing:
@@ -276,7 +284,7 @@ make qemu-smoke
 make qemu-soak
 ```
 
-Outputs land in `dist/release/` (`kernel.elf`, `kernel.bin`, `kernel.map`, `size.txt`).
+Object files go under `build/release/`; linked outputs land in `dist/release/` (`kernel.elf`, `kernel.bin`, `kernel.map`, `size.txt`, `memory_report.txt`). Release and debug builds use separate object trees — no `make clean` needed between `make` and `make debug`.
 
 ### DEBUG build (telemetry + ISR stack guard)
 
@@ -302,7 +310,9 @@ git -C test/Unity checkout b706271f3255e33a0e5ec068844462c5fdb5c527
 make test
 ```
 
-Fifty-six host tests cover memory protection, system state, state-machine policy, watchdog FDIR logic, memory scrub, fault injection, the fault queue, and UART command dispatch plus handler execution. Tests live under `test/test_*.c` with a thin `test/test_runner.c`; stubs in `test/support/` replace FreeRTOS and capture UART output for assertions.
+Sixty-three host tests cover memory protection, system state, state-machine policy, SAFE policy, watchdog FDIR logic, memory scrub, fault injection, the fault queue, and UART command dispatch plus handler execution. Tests live under `test/test_*.c` with a thin `test/test_runner.c`; stubs in `test/support/` replace FreeRTOS and capture UART output for assertions.
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for boot flow, IPC patterns, SAFE policy details, and a step-by-step guide to adding a new task.
 
 ### Static analysis
 
