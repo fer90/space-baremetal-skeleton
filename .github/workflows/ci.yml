@@ -5,6 +5,10 @@ on:
     branches: [main, master]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -19,13 +23,32 @@ jobs:
 
       - name: Fetch Unity test framework
         run: |
-          git clone --depth 1 https://github.com/ThrowTheSwitch/Unity.git test/Unity
+          git clone --depth 1 --branch v2.6.3 https://github.com/ThrowTheSwitch/Unity.git test/Unity
 
-      - name: Build firmware
-        run: make clean && make
+      - name: Build release firmware
+        run: |
+          make clean && make
+          mkdir -p dist/release
+          cp kernel.elf kernel.bin dist/release/
+          riscv64-unknown-elf-size kernel.elf | tee dist/release/size.txt
+          chmod +x scripts/check_firmware_size.sh
+          scripts/check_firmware_size.sh release kernel.elf
 
       - name: Build DEBUG firmware
-        run: make clean && make debug
+        run: |
+          make clean && make debug
+          mkdir -p dist/debug
+          cp kernel.elf kernel.bin dist/debug/
+          riscv64-unknown-elf-size kernel.elf | tee dist/debug/size.txt
+          scripts/check_firmware_size.sh debug kernel.elf
+
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Run Unity tests
         run: make test
