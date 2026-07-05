@@ -33,15 +33,19 @@ CSRC = src/main.c src/tasks.c src/system.c src/system_state.c src/state_machine.
        src/isr_stack_guard.c src/telemetry.c src/timer.c src/interrupt.c \
        $(FREERTOS_SRC)
 ASRC = src/startup.s
-OBJ = $(ASRC:.s=.o) \
-      $(patsubst %.c,%.o,$(filter %.c,$(CSRC))) \
-      $(patsubst %.S,%.o,$(filter %.S,$(CSRC)))
 
 ifeq ($(DEBUG),1)
-DIST_DIR = dist/debug
+BUILD_FLAVOR = debug
 else
-DIST_DIR = dist/release
+BUILD_FLAVOR = release
 endif
+
+BUILD_DIR = build/$(BUILD_FLAVOR)
+DIST_DIR = dist/$(BUILD_FLAVOR)
+
+OBJ = $(addprefix $(BUILD_DIR)/,$(ASRC:.s=.o)) \
+      $(addprefix $(BUILD_DIR)/,$(patsubst %.c,%.o,$(filter %.c,$(CSRC)))) \
+      $(addprefix $(BUILD_DIR)/,$(patsubst %.S,%.o,$(filter %.S,$(CSRC))))
 
 KERNEL_ELF = $(DIST_DIR)/kernel.elf
 KERNEL_BIN = $(DIST_DIR)/kernel.bin
@@ -60,17 +64,20 @@ $(KERNEL_ELF): $(OBJ) | $(DIST_DIR)
 $(KERNEL_BIN): $(KERNEL_ELF)
 	$(OBJCOPY) -O binary $< $@
 
-%.o: %.c
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-%.o: %.s
+$(BUILD_DIR)/%.o: %.s
+	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
-%.o: FreeRTOS/Source/portable/GCC/RISC-V/%.S
-	$(AS) $(ASFLAGS) -c $< -o $@
+$(BUILD_DIR)/FreeRTOS/Source/portable/GCC/RISC-V/%.o: FreeRTOS/Source/portable/GCC/RISC-V/%.S
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Special rule for heap_4.c (in subdirectory)
-FreeRTOS/Source/portable/MemMang/%.o: FreeRTOS/Source/portable/MemMang/%.c
+$(BUILD_DIR)/FreeRTOS/Source/portable/MemMang/%.o: FreeRTOS/Source/portable/MemMang/%.c
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Host unit tests (Unity)
@@ -191,19 +198,18 @@ lint:
 		src/
 
 clean:
-	rm -f $(OBJ) test_runner kernel.elf kernel.bin kernel.map
-	rm -rf $(TEST_OBJ_DIR) dist
+	rm -rf build dist $(TEST_OBJ_DIR) test_runner
 
 qemu: $(KERNEL_BIN)
 	qemu-system-riscv64 -machine virt -cpu rv64 -nographic -kernel $(KERNEL_BIN) -bios none
 
-qemu-smoke: $(KERNEL_BIN)
+qemu-smoke:
 	chmod +x scripts/qemu_smoke.sh
-	KERNEL_BIN=$(KERNEL_BIN) scripts/qemu_smoke.sh
+	KERNEL_BIN=$(if $(KERNEL_BIN),$(KERNEL_BIN),dist/release/kernel.bin) scripts/qemu_smoke.sh
 
-qemu-soak: $(KERNEL_BIN)
+qemu-soak:
 	chmod +x scripts/qemu_soak.sh
-	KERNEL_BIN=$(KERNEL_BIN) scripts/qemu_soak.sh
+	KERNEL_BIN=$(if $(KERNEL_BIN),$(KERNEL_BIN),dist/release/kernel.bin) scripts/qemu_soak.sh
 
 debug:
 	$(MAKE) DEBUG=1 all

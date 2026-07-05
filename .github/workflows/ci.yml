@@ -34,9 +34,18 @@ jobs:
           chmod +x scripts/check_firmware_size.sh
           scripts/check_firmware_size.sh release dist/release/kernel.elf
 
+      - name: Host tests and static analysis
+        run: make check
+
+      - name: QEMU smoke test (release)
+        run: make qemu-smoke KERNEL_BIN=dist/release/kernel.bin
+
+      - name: QEMU soak test (release)
+        run: make qemu-soak KERNEL_BIN=dist/release/kernel.bin
+
       - name: Build DEBUG firmware
         run: |
-          make clean && make debug
+          make debug
           scripts/check_firmware_size.sh debug dist/debug/kernel.elf
 
       - name: Upload firmware artifacts
@@ -46,12 +55,3 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
-
-      - name: Host tests and static analysis
-        run: make check
-
-      - name: QEMU smoke test (release)
-        run: make qemu-smoke KERNEL_BIN=dist/release/kernel.bin
-
-      - name: QEMU soak test (release)
-        run: make qemu-soak KERNEL_BIN=dist/release/kernel.bin

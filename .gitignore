@@ -62,7 +62,8 @@ test/Unity/
 test/obj/
 test_runner
 
-# CI-packaged firmware outputs (rebuilt locally or downloaded from Actions)
+# Firmware build trees (objects + packaged outputs)
+build/
 dist/
 
 # Local cppcheck source/build trees (use apt in CI; suppressions live in cppcheck-suppressions.txt)
