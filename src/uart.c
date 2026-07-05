@@ -22,7 +22,7 @@ bool uart_rx_ready(void) {
 }
 
 char uart_getc(void) {
-    volatile uint8_t *uart = uart_regs();
+    const volatile uint8_t *uart = uart_regs();
 
     while ((uart[5] & UART_LSR_DR) == 0) {
     }

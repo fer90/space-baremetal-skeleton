@@ -7,6 +7,7 @@
 
 extern void freertos_risc_v_trap_handler(void);
 
+// cppcheck-suppress constParameterPointer ; must match FreeRTOS hook signature
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
     (void) xTask;

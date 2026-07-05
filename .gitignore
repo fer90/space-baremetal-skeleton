@@ -61,3 +61,6 @@ test/Unity/
 # Host unit test build outputs
 test/obj/
 test_runner
+
+# Local cppcheck source/build trees (use apt in CI; suppressions live in cppcheck-suppressions.txt)
+cppcheck-*/

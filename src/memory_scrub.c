@@ -136,12 +136,11 @@ void vTaskMemoryScrub(void *pvParameters)
 {
     (void) pvParameters;
     FaultEvent_t event;
-    bool had_event;
 
     memory_scrub_init(scrub_area);
 
     for (;;) {
-        had_event = false;
+        bool had_event = false;
 
         while (xQueueReceive(xFaultQueue, &event, 0) == pdPASS) {
             had_event = true;

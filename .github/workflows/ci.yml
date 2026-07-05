@@ -32,10 +32,11 @@ jobs:
 
       - name: Static analysis (cppcheck)
         run: |
-          cppcheck --enable=warning,style,performance,portability --inconclusive --quiet \
+          cppcheck --enable=warning,style,performance,portability --inconclusive --inline-suppr --quiet \
             -Iinclude \
             -IFreeRTOS/Source/include \
             -IFreeRTOS/Source/portable/GCC/RISC-V \
+            --suppressions-list=cppcheck-suppressions.txt \
             --suppress=missingIncludeSystem \
             --error-exitcode=1 \
             src/

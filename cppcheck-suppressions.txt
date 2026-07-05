@@ -1,0 +1,5 @@
+# FreeRTOS and DEBUG multiply #ifdef configurations beyond cppcheck's default limit.
+toomanyconfigs
+
+# Informational noise on complex task loops; not actionable for this project.
+normalCheckLevelMaxBranches
