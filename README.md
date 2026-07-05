@@ -214,7 +214,7 @@ src/
   isr_stack_guard.c   # DEBUG ISR stack paint/check
   system.c            # system_halt()
   uart.c              # MMIO UART (QEMU virt console)
-FreeRTOS/             # Vendored FreeRTOS sources (RISC-V GCC port, heap_4)
+FreeRTOS/             # Vendored FreeRTOS Kernel V11.1.0+ (see FreeRTOS/VERSION)
 test/
   test_runner.c       # Unity entry point (RUN_TEST list)
   test_*.c            # Per-subsystem test suites
@@ -233,15 +233,21 @@ Every push to `main`/`master` and every pull request runs [`.github/workflows/ci
 
 1. Release and DEBUG firmware builds with size checks
 2. Firmware artifacts (`kernel.elf`, `kernel.bin`, `kernel.map`, `size.txt`) uploaded per commit — download from the Actions run
-3. Host Unity tests (`make test`)
-4. Static analysis (`make lint`)
-5. QEMU smoke test (`make qemu-smoke`) — boot banner, NOMINAL state, scrub init, UART help
+3. Host tests + static analysis (`make check` — runs `test` then `lint`)
+4. QEMU smoke test (`make qemu-smoke`) — boot, help, UART `d`/`n` state transitions
 
 Reproduce locally before pushing:
 
 ```bash
-make clean && make && make test && make lint
+make clean && make && make check && make qemu-smoke
 ```
+
+### Third-party versions
+
+| Component | Version / pin |
+|-----------|----------------|
+| FreeRTOS Kernel | V11.1.0+ — vendored; see [`FreeRTOS/VERSION`](FreeRTOS/VERSION) |
+| Unity (host tests) | Commit `b706271` (reports 2.6.3); cloned by CI into `test/Unity` |
 
 ## Build & run
 
@@ -293,6 +299,8 @@ Forty-nine host tests cover memory protection, system state, state-machine polic
 
 ```bash
 make lint
+# or both host tests and lint:
+make check
 ```
 
 Runs cppcheck on `src/` with the same flags as CI. Project-wide suppressions live in `cppcheck-suppressions.txt`; function-specific ones use `// cppcheck-suppress` comments in source.

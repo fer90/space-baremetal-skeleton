@@ -1,0 +1,9 @@
+FreeRTOS Kernel V11.1.0+ (development branch)
+Source: https://github.com/FreeRTOS/FreeRTOS-Kernel
+
+Vendored in this repository (not a submodule). Imported with project commit
+6711a7e363308451dd881a27be36c46bb6c68677 ("Porting bare metal to FreeRTOS").
+
+Subset used: RISC-V GCC port (heap_4), tasks, queues, timers, event groups,
+stream buffers. Headers report tskKERNEL_VERSION_NUMBER "V11.1.0+" in
+FreeRTOS/Source/include/task.h.

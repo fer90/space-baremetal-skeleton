@@ -53,11 +53,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Run Unity tests
-        run: make test
-
-      - name: Static analysis (cppcheck)
-        run: make lint
+      - name: Host tests and static analysis
+        run: make check
 
       - name: QEMU smoke test
         run: make qemu-smoke

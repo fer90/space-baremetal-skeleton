@@ -2,7 +2,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 
 #include "uart.h"
 #include "uart_test.h"
@@ -40,11 +39,35 @@ const char *test_uart_output(void)
 
 bool test_uart_contains(const char *substring)
 {
+    size_t hay_len = test_uart_length;
+    size_t needle_len = 0;
+    size_t i;
+
     if (substring == NULL) {
         return false;
     }
 
-    return strstr(test_uart_buffer, substring) != NULL;
+    while (substring[needle_len] != '\0') {
+        needle_len++;
+    }
+
+    if (needle_len == 0 || needle_len > hay_len) {
+        return false;
+    }
+
+    for (i = 0; i <= hay_len - needle_len; i++) {
+        size_t j = 0;
+
+        while (j < needle_len && test_uart_buffer[i + j] == substring[j]) {
+            j++;
+        }
+
+        if (j == needle_len) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void uart_putc(char c)

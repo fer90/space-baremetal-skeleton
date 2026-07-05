@@ -77,6 +77,8 @@ void tasks_create_all(void)
     isr_stack_guard_init();
 #endif
 
+    fault_inject_init();
+
     for (size_t i = 0; i < (sizeof(task_configs) / sizeof(task_configs[0])); i++) {
         create_task(&task_configs[i]);
     }

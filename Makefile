@@ -64,8 +64,10 @@ UNITY_DIR = test/Unity/src
 TEST_SUPPORT = test/support
 TEST_OBJ_DIR = test/obj
 
-TEST_CFLAGS = -std=c11 -Wall -Wextra -O0 -g \
-              -I$(TEST_SUPPORT) -Iinclude -I$(UNITY_DIR)
+# Stubs omit -Iinclude so <string.h> resolves to libc, not include/string.h.
+TEST_CFLAGS_STUB = -std=c11 -Wall -Wextra -O0 -g \
+                   -I$(TEST_SUPPORT) -I$(UNITY_DIR)
+TEST_CFLAGS = $(TEST_CFLAGS_STUB) -Iinclude
 
 TEST_CASE_OBJ = test_runner \
                 test_memory_protection \
@@ -98,6 +100,8 @@ test_runner: $(TEST_OBJ)
 test: test_runner
 	./test_runner
 
+check: test lint
+
 $(TEST_OBJ_DIR)/%.o: test/%.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
@@ -108,7 +112,7 @@ $(TEST_OBJ_DIR)/unity.o: $(UNITY_DIR)/unity.c
 
 $(TEST_OBJ_DIR)/freertos_stub.o: $(TEST_SUPPORT)/freertos_stub.c
 	@mkdir -p $(TEST_OBJ_DIR)
-	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+	$(HOST_CC) $(TEST_CFLAGS_STUB) -c $< -o $@
 
 $(TEST_OBJ_DIR)/uart_stub.o: $(TEST_SUPPORT)/uart_stub.c
 	@mkdir -p $(TEST_OBJ_DIR)
@@ -157,6 +161,11 @@ $(TEST_OBJ_DIR)/test_support.o: test/support/test_support.c
 CPPCHECK ?= cppcheck
 
 lint:
+	@command -v $(CPPCHECK) >/dev/null 2>&1 || { \
+		echo "error: cppcheck not found (required for make lint / make check)" >&2; \
+		echo "  Ubuntu/Debian: sudo apt install cppcheck" >&2; \
+		exit 127; \
+	}
 	$(CPPCHECK) --enable=warning,style,performance,portability --inconclusive --inline-suppr --quiet \
 		-Iinclude \
 		-IFreeRTOS/Source/include \
@@ -180,4 +189,4 @@ qemu-smoke: kernel.bin
 debug:
 	$(MAKE) DEBUG=1 all
 
-.PHONY: all clean qemu qemu-smoke debug test lint
+.PHONY: all clean qemu qemu-smoke debug test lint check
