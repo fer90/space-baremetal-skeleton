@@ -1,5 +1,7 @@
 # space-baremetal-skeleton
 
+[![CI](https://github.com/fer90/space-baremetal-skeleton/actions/workflows/ci.yml/badge.svg)](https://github.com/fer90/space-baremetal-skeleton/actions/workflows/ci.yml)
+
 Minimal bare-metal firmware skeleton for **RISC-V (rv64)**, built with **FreeRTOS** and tuned for **space / aerospace** thinking: dependability, radiation-aware memory handling, and observable runtime behavior.
 
 Runs on QEMU `virt` with no BIOS — UART console only.

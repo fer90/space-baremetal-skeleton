@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-riscv64-unknown-elf gcc qemu-system-misc cppcheck
+
+      - name: Fetch Unity test framework
+        run: |
+          git clone --depth 1 https://github.com/ThrowTheSwitch/Unity.git test/Unity
+
+      - name: Build firmware
+        run: make clean && make
+
+      - name: Build DEBUG firmware
+        run: make clean && make debug
+
+      - name: Run Unity tests
+        run: make test
+
+      - name: Static analysis (cppcheck)
+        run: |
+          cppcheck --enable=warning,style,performance,portability --inconclusive --quiet \
+            -Iinclude \
+            -IFreeRTOS/Source/include \
+            -IFreeRTOS/Source/portable/GCC/RISC-V \
+            --suppress=missingIncludeSystem \
+            --error-exitcode=1 \
+            src/
+
+      - name: QEMU smoke test
+        run: |
+          timeout 10s make qemu
+          code=$?
+          if [ "$code" -eq 124 ]; then
+            echo "QEMU smoke test OK (stopped after timeout)"
+          else
+            exit "$code"
+          fi
