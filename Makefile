@@ -77,6 +77,7 @@ TEST_OBJ = $(TEST_OBJ_DIR)/test_runner.o \
            $(TEST_OBJ_DIR)/memory_scrub.o \
            $(TEST_OBJ_DIR)/fault_queue.o \
            $(TEST_OBJ_DIR)/fault_inject.o \
+           $(TEST_OBJ_DIR)/state_machine.o \
            $(TEST_OBJ_DIR)/golden_copy.o
 
 test_runner: $(TEST_OBJ)
@@ -126,6 +127,10 @@ $(TEST_OBJ_DIR)/fault_queue.o: src/fault_queue.c
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
 $(TEST_OBJ_DIR)/fault_inject.o: src/fault_inject.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/state_machine.o: src/state_machine.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 

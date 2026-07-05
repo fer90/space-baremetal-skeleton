@@ -4,6 +4,7 @@
 #include "fault_queue.h"
 #include "memory_protection.h"
 #include "memory_scrub.h"
+#include "state_machine.h"
 #include "system_state.h"
 #include "queue.h"
 
@@ -301,6 +302,89 @@ void test_fault_inject_set_enabled_toggles(void)
     TEST_ASSERT_TRUE(fault_inject_is_enabled());
 }
 
+void test_state_machine_boot_to_nominal_allowed(void)
+{
+    SystemState_t current = SYSTEM_STATE_BOOT;
+    StateRequest_t request = {.requested_state = SYSTEM_STATE_NOMINAL, .reason_code = 0u};
+
+    TEST_ASSERT_TRUE(state_machine_apply_request(&current, &request));
+    TEST_ASSERT_EQUAL(SYSTEM_STATE_NOMINAL, current);
+}
+
+void test_state_machine_nominal_to_degraded_allowed(void)
+{
+    SystemState_t current = SYSTEM_STATE_NOMINAL;
+    StateRequest_t request = {.requested_state = SYSTEM_STATE_DEGRADED, .reason_code = 0x01u};
+
+    TEST_ASSERT_TRUE(state_machine_apply_request(&current, &request));
+    TEST_ASSERT_EQUAL(SYSTEM_STATE_DEGRADED, current);
+}
+
+void test_state_machine_degraded_to_nominal_allowed_for_watchdog_recovery(void)
+{
+    SystemState_t current = SYSTEM_STATE_DEGRADED;
+    StateRequest_t request = {.requested_state = SYSTEM_STATE_NOMINAL, .reason_code = 0x03u};
+
+    TEST_ASSERT_TRUE(state_machine_apply_request(&current, &request));
+    TEST_ASSERT_EQUAL(SYSTEM_STATE_NOMINAL, current);
+}
+
+void test_state_machine_degraded_to_nominal_allowed_for_uart_command(void)
+{
+    SystemState_t current = SYSTEM_STATE_DEGRADED;
+    StateRequest_t request = {.requested_state = SYSTEM_STATE_NOMINAL, .reason_code = 0x10u};
+
+    TEST_ASSERT_TRUE(state_machine_apply_request(&current, &request));
+    TEST_ASSERT_EQUAL(SYSTEM_STATE_NOMINAL, current);
+}
+
+void test_state_machine_degraded_to_safe_allowed(void)
+{
+    SystemState_t current = SYSTEM_STATE_DEGRADED;
+    StateRequest_t request = {.requested_state = SYSTEM_STATE_SAFE, .reason_code = 0x01u};
+
+    TEST_ASSERT_TRUE(state_machine_apply_request(&current, &request));
+    TEST_ASSERT_EQUAL(SYSTEM_STATE_SAFE, current);
+}
+
+void test_state_machine_downgrade_rejected_without_recovery_reason(void)
+{
+    SystemState_t current = SYSTEM_STATE_SAFE;
+    StateRequest_t request = {.requested_state = SYSTEM_STATE_NOMINAL, .reason_code = 0x01u};
+
+    TEST_ASSERT_FALSE(state_machine_apply_request(&current, &request));
+    TEST_ASSERT_EQUAL(SYSTEM_STATE_SAFE, current);
+}
+
+void test_state_machine_same_state_request_is_noop(void)
+{
+    SystemState_t current = SYSTEM_STATE_DEGRADED;
+    StateRequest_t request = {.requested_state = SYSTEM_STATE_DEGRADED, .reason_code = 0x02u};
+
+    TEST_ASSERT_FALSE(state_machine_apply_request(&current, &request));
+    TEST_ASSERT_EQUAL(SYSTEM_STATE_DEGRADED, current);
+}
+
+void test_fault_queue_init_succeeds(void)
+{
+    test_freertos_reset();
+    xFaultQueue = NULL;
+
+    TEST_ASSERT_TRUE(fault_queue_init());
+    TEST_ASSERT_NOT_NULL(xFaultQueue);
+}
+
+void test_fault_queue_send_receive_roundtrip(void)
+{
+    FaultEvent_t sent = {.index = 7u, .bit = 2u};
+    FaultEvent_t received;
+
+    TEST_ASSERT_EQUAL(pdPASS, xQueueSend(xFaultQueue, &sent, 0));
+    TEST_ASSERT_EQUAL(pdPASS, xQueueReceive(xFaultQueue, &received, 0));
+    TEST_ASSERT_EQUAL_UINT32(sent.index, received.index);
+    TEST_ASSERT_EQUAL_UINT8(sent.bit, received.bit);
+}
+
 void test_fault_inject_corrupts_buffer_and_queues_event(void)
 {
     volatile uint8_t area[SCRUB_SIZE];
@@ -371,6 +455,17 @@ int main(void)
     RUN_TEST(test_fault_inject_enabled_by_default);
     RUN_TEST(test_fault_inject_set_enabled_toggles);
     RUN_TEST(test_fault_inject_corrupts_buffer_and_queues_event);
+
+    RUN_TEST(test_state_machine_boot_to_nominal_allowed);
+    RUN_TEST(test_state_machine_nominal_to_degraded_allowed);
+    RUN_TEST(test_state_machine_degraded_to_nominal_allowed_for_watchdog_recovery);
+    RUN_TEST(test_state_machine_degraded_to_nominal_allowed_for_uart_command);
+    RUN_TEST(test_state_machine_degraded_to_safe_allowed);
+    RUN_TEST(test_state_machine_downgrade_rejected_without_recovery_reason);
+    RUN_TEST(test_state_machine_same_state_request_is_noop);
+
+    RUN_TEST(test_fault_queue_init_succeeds);
+    RUN_TEST(test_fault_queue_send_receive_roundtrip);
 
     return UNITY_END();
 }

@@ -1,9 +1,65 @@
 #include "FreeRTOS.h"
 #include "task.h"
-#include "system_state.h"
-#include "common.h"
+#include "state_machine.h"
+#include "log.h"
+#include "uart.h"
 
-void vTaskStateMachine(void *pvParameters) {
+static bool state_machine_allows_request(SystemState_t current, const StateRequest_t *request)
+{
+    SystemState_t requested = request->requested_state;
+
+    if (requested >= current) {
+        return true;
+    }
+
+    if (requested == SYSTEM_STATE_NOMINAL &&
+        (current == SYSTEM_STATE_DEGRADED || current == SYSTEM_STATE_SAFE) &&
+        (request->reason_code == 0x03u || request->reason_code == 0x10u)) {
+        return true;
+    }
+
+    return false;
+}
+
+bool state_machine_apply_request(SystemState_t *current, const StateRequest_t *request)
+{
+    if (current == NULL || request == NULL) {
+        return false;
+    }
+
+    if (!state_machine_allows_request(*current, request)) {
+        return false;
+    }
+
+    if (*current == request->requested_state) {
+        return false;
+    }
+
+    *current = request->requested_state;
+    return true;
+}
+
+static void state_machine_log_transition(SystemState_t state)
+{
+    uart_puts(LOG_PREFIX_STATE "changed to ");
+    switch (state) {
+        case SYSTEM_STATE_NOMINAL:
+            uart_puts("NOMINAL\r\n");
+            break;
+        case SYSTEM_STATE_DEGRADED:
+            uart_puts("DEGRADED\r\n");
+            break;
+        case SYSTEM_STATE_SAFE:
+            uart_puts("SAFE\r\n");
+            break;
+        default:
+            uart_puts("UNKNOWN\r\n");
+            break;
+    }
+}
+
+void vTaskStateMachine(void *pvParameters)
+{
     (void) pvParameters;
     StateRequest_t request;
 
@@ -14,26 +70,11 @@ void vTaskStateMachine(void *pvParameters) {
 
     for (;;) {
         if (xQueueReceive(xStateRequestQueue, &request, pdMS_TO_TICKS(1000)) == pdPASS) {
-            if (request.requested_state >= gSystemState) {
-                if (gSystemState != request.requested_state) {
-                    gSystemState = request.requested_state;
+            SystemState_t current = gSystemState;
 
-                    uart_puts(LOG_PREFIX_STATE "changed to ");
-                    switch (gSystemState) {
-                        case SYSTEM_STATE_NOMINAL:
-                            uart_puts("NOMINAL\r\n");
-                            break;
-                        case SYSTEM_STATE_DEGRADED:
-                            uart_puts("DEGRADED\r\n");
-                            break;
-                        case SYSTEM_STATE_SAFE:
-                            uart_puts("SAFE\r\n");
-                            break;
-                        default:
-                            uart_puts("UNKNOWN\r\n");
-                            break;
-                    }
-                }
+            if (state_machine_apply_request(&current, &request)) {
+                gSystemState = current;
+                state_machine_log_transition(current);
             }
         }
     }
