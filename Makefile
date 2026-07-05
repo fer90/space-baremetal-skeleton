@@ -236,13 +236,21 @@ clean:
 qemu: $(KERNEL_BIN)
 	qemu-system-riscv64 -machine virt -cpu rv64 -nographic -kernel $(KERNEL_BIN) -bios none
 
-qemu-smoke:
-	chmod +x scripts/qemu_smoke.sh
-	KERNEL_BIN=$(if $(KERNEL_BIN),$(KERNEL_BIN),dist/release/kernel.bin) scripts/qemu_smoke.sh
+RELEASE_KERNEL_ELF = dist/release/kernel.elf
+RELEASE_KERNEL_BIN = dist/release/kernel.bin
 
-qemu-soak:
-	chmod +x scripts/qemu_soak.sh
-	KERNEL_BIN=$(if $(KERNEL_BIN),$(KERNEL_BIN),dist/release/kernel.bin) scripts/qemu_soak.sh
+# Always re-patch CRC before QEMU integration tests (objcopy leaves the slot at 0).
+qemu-smoke: $(RELEASE_KERNEL_ELF)
+	chmod +x scripts/patch_image_crc.py scripts/qemu_smoke.sh
+	$(OBJCOPY) -O binary $(RELEASE_KERNEL_ELF) $(RELEASE_KERNEL_BIN)
+	python3 scripts/patch_image_crc.py $(RELEASE_KERNEL_ELF) $(RELEASE_KERNEL_BIN)
+	KERNEL_BIN=$(if $(KERNEL_BIN),$(KERNEL_BIN),$(RELEASE_KERNEL_BIN)) scripts/qemu_smoke.sh
+
+qemu-soak: $(RELEASE_KERNEL_ELF)
+	chmod +x scripts/patch_image_crc.py scripts/qemu_soak.sh
+	$(OBJCOPY) -O binary $(RELEASE_KERNEL_ELF) $(RELEASE_KERNEL_BIN)
+	python3 scripts/patch_image_crc.py $(RELEASE_KERNEL_ELF) $(RELEASE_KERNEL_BIN)
+	KERNEL_BIN=$(if $(KERNEL_BIN),$(KERNEL_BIN),$(RELEASE_KERNEL_BIN)) scripts/qemu_soak.sh
 
 debug:
 	$(MAKE) DEBUG=1 all
