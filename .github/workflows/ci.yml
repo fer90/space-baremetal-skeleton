@@ -23,7 +23,10 @@ jobs:
 
       - name: Fetch Unity test framework
         run: |
-          git clone --depth 1 --branch v2.6.3 https://github.com/ThrowTheSwitch/Unity.git test/Unity
+          # v2.6.3 was never tagged upstream; pin the commit that reports UNITY 2.6.3.
+          git clone --depth 1 --no-checkout https://github.com/ThrowTheSwitch/Unity.git test/Unity
+          git -C test/Unity fetch --depth 1 origin b706271f3255e33a0e5ec068844462c5fdb5c527
+          git -C test/Unity checkout b706271f3255e33a0e5ec068844462c5fdb5c527
 
       - name: Build release firmware
         run: |
