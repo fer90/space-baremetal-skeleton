@@ -68,7 +68,8 @@ void test_command_handle_inject_fault_queues_scrub_event(void);
 
 void test_safe_policy_watchdog_expected_bits_nominal(void);
 void test_safe_policy_watchdog_expected_bits_safe_is_minimal(void);
-void test_safe_policy_blocks_fault_inject_in_safe(void);
+void test_safe_policy_blocks_manual_fault_inject_in_safe(void);
+void test_safe_policy_blocks_auto_fault_inject_outside_nominal(void);
 void test_safe_policy_blocks_background_scrub_in_safe(void);
 void test_safe_policy_suppresses_heartbeat_uart_in_safe(void);
 void test_safe_policy_blocks_seu_escalation_in_safe(void);
@@ -77,6 +78,11 @@ void test_event_log_init_records_boot_entry(void);
 void test_event_log_state_change_roundtrip(void);
 void test_event_log_ring_overwrites_oldest(void);
 void test_event_log_dump_prints_header_and_entries(void);
+
+void test_crc32_empty_is_zero(void);
+void test_crc32_known_ieee_vector(void);
+void test_image_integrity_region_skips_crc_slot(void);
+void test_image_integrity_region_detects_corruption(void);
 
 int main(void)
 {
@@ -150,7 +156,8 @@ int main(void)
 
     RUN_TEST(test_safe_policy_watchdog_expected_bits_nominal);
     RUN_TEST(test_safe_policy_watchdog_expected_bits_safe_is_minimal);
-    RUN_TEST(test_safe_policy_blocks_fault_inject_in_safe);
+    RUN_TEST(test_safe_policy_blocks_manual_fault_inject_in_safe);
+    RUN_TEST(test_safe_policy_blocks_auto_fault_inject_outside_nominal);
     RUN_TEST(test_safe_policy_blocks_background_scrub_in_safe);
     RUN_TEST(test_safe_policy_suppresses_heartbeat_uart_in_safe);
     RUN_TEST(test_safe_policy_blocks_seu_escalation_in_safe);
@@ -159,6 +166,11 @@ int main(void)
     RUN_TEST(test_event_log_state_change_roundtrip);
     RUN_TEST(test_event_log_ring_overwrites_oldest);
     RUN_TEST(test_event_log_dump_prints_header_and_entries);
+
+    RUN_TEST(test_crc32_empty_is_zero);
+    RUN_TEST(test_crc32_known_ieee_vector);
+    RUN_TEST(test_image_integrity_region_skips_crc_slot);
+    RUN_TEST(test_image_integrity_region_detects_corruption);
 
     return UNITY_END();
 }

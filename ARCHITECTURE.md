@@ -73,6 +73,25 @@ Dump with UART **`l`** — prints `[REC]` lines. Especially useful in **SAFE** m
 
 Storage is ~576 bytes in `.bss`; oldest entries are overwritten when the ring fills. Power loss clears the log (no NVM in this skeleton).
 
+## Boot image integrity
+
+The RX load segment (`.text.init`, `.text`, `.rodata`) is checksummed at boot with CRC-32 (IEEE). A four-byte slot at the end of `.rodata` (`g_image_crc_expected` in section `.image_crc`) is **excluded** from the hash and patched after link:
+
+```bash
+python3 scripts/patch_image_crc.py dist/release/kernel.elf dist/release/kernel.bin
+```
+
+`make` runs this automatically after `objcopy`. On success, firmware prints `[BOOT] image CRC OK`. On mismatch (or an unpatched slot), it logs `[ERROR]`, records `IMAGE_CRC_FAIL` in the flight recorder, and the state machine starts in **DEGRADED** (reason `0x05`) instead of NOMINAL.
+
+## DEGRADED policy
+
+Entering **DEGRADED** (from any state) calls `safe_policy_on_degraded_enter()`:
+
+- Automatic fault injection is disabled (manual `f` still works unless already in SAFE).
+- Background scrub, full watchdog bit mask, and heartbeat logging are unchanged.
+
+**SAFE** remains stricter (no background scrub, minimal watchdog, no manual inject).
+
 ## Logging
 
 UART output uses fixed prefixes from `include/log.h` (`[STATE]`, `[CMD]`, `[ERROR]`, `[SAFE]`, etc.). Keep new messages consistent so CI QEMU scripts and operators can grep logs reliably.

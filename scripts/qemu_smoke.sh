@@ -39,6 +39,7 @@ require_pattern() {
     fi
 }
 
+require_pattern "[BOOT] image CRC OK" "missing boot image CRC OK"
 require_pattern "=== FreeRTOS Migration Started ===" "missing boot banner"
 require_pattern "Fault injection initialized (SEU simulation)" "missing fault-inject init"
 require_pattern "[STATE] NOMINAL" "missing NOMINAL state"

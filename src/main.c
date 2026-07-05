@@ -5,6 +5,7 @@
 #include "system.h"
 #include "tasks.h"
 #include "event_log.h"
+#include "image_integrity.h"
 
 extern void freertos_risc_v_trap_handler(void);
 
@@ -27,6 +28,12 @@ int main(void)
 
     command_init();
     event_log_init();
+
+    if (!image_integrity_verify()) {
+        event_log_record_image_crc_fail(image_integrity_expected_crc(),
+                                        image_integrity_computed_crc());
+    }
+
     memory_protection_init();
     memory_protection_register_critical_text();
     uart_puts("\r\n=== FreeRTOS Migration Started ===\r\n");

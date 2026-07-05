@@ -126,7 +126,7 @@ void command_handle(CommandType_t cmd)
             break;
 
         case CMD_INJECT_FAULT:
-            if (!safe_policy_allows_fault_inject(system_state_get())) {
+            if (!safe_policy_allows_manual_fault_inject(system_state_get())) {
                 uart_puts(LOG_PREFIX_CMD "fault inject blocked in SAFE\r\n");
                 break;
             }

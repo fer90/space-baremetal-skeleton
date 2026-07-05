@@ -10,6 +10,7 @@ PHDRS
 SECTIONS
 {
     . = 0x80000000;
+    __image_integrity_start = .;
 
     .text.init : {
         *(.text.init)
@@ -25,6 +26,10 @@ SECTIONS
 
     .rodata : {
         *(.rodata*)
+        . = ALIGN(4);
+        __image_crc_slot = .;
+        KEEP(*(.image_crc))
+        __image_integrity_end = .;
     } :text
 
     .data : {

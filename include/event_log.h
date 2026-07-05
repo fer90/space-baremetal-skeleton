@@ -16,6 +16,7 @@ typedef enum {
     EVENT_LOG_MEM_PROT_THRESHOLD,
     EVENT_LOG_SAFE_POLICY,
     EVENT_LOG_OPERATOR,
+    EVENT_LOG_IMAGE_CRC_FAIL,
 } EventLogType_t;
 
 typedef struct {
@@ -38,6 +39,7 @@ void event_log_record_seu_corrected(uint32_t byte_index, uint8_t bit);
 void event_log_record_mem_prot_threshold(uint32_t violation_count);
 void event_log_record_safe_policy(bool entering_safe);
 void event_log_record_operator(char command_key);
+void event_log_record_image_crc_fail(uint32_t expected, uint32_t computed);
 
 uint16_t event_log_count(void);
 bool event_log_get_entry_chronological(uint16_t index, EventLogEntry_t *entry);

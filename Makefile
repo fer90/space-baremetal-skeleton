@@ -31,7 +31,7 @@ CSRC = src/main.c src/tasks.c src/system.c src/system_state.c src/state_machine.
        src/command.c src/uart.c \
        src/string.c src/watchdog.c src/memory_protection.c src/golden_copy.c src/memory_scrub.c src/fault_inject.c src/fault_queue.c \
        src/isr_stack_guard.c src/telemetry.c src/timer.c src/interrupt.c src/safe_policy.c \
-       src/event_log.c \
+       src/event_log.c src/crc32.c src/image_integrity.c src/image_crc.c \
        $(FREERTOS_SRC)
 ASRC = src/startup.s
 
@@ -64,6 +64,8 @@ $(KERNEL_ELF): $(OBJ) | $(DIST_DIR)
 
 $(KERNEL_BIN): $(KERNEL_ELF)
 	$(OBJCOPY) -O binary $< $@
+	chmod +x scripts/patch_image_crc.py
+	python3 scripts/patch_image_crc.py $(KERNEL_ELF) $@
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
@@ -102,7 +104,9 @@ TEST_CASE_OBJ = test_runner \
                 test_watchdog \
                 test_command \
                 test_safe_policy \
-                test_event_log
+                test_event_log \
+                test_crc32 \
+                test_image_integrity
 
 TEST_OBJ = $(addprefix $(TEST_OBJ_DIR)/,$(addsuffix .o,$(TEST_CASE_OBJ))) \
            $(TEST_OBJ_DIR)/test_support.o \
@@ -119,7 +123,10 @@ TEST_OBJ = $(addprefix $(TEST_OBJ_DIR)/,$(addsuffix .o,$(TEST_CASE_OBJ))) \
            $(TEST_OBJ_DIR)/state_machine.o \
            $(TEST_OBJ_DIR)/golden_copy.o \
            $(TEST_OBJ_DIR)/safe_policy.o \
-           $(TEST_OBJ_DIR)/event_log.o
+           $(TEST_OBJ_DIR)/event_log.o \
+           $(TEST_OBJ_DIR)/crc32.o \
+           $(TEST_OBJ_DIR)/image_integrity.o \
+           $(TEST_OBJ_DIR)/image_integrity_stub.o
 
 test_runner: $(TEST_OBJ)
 	$(HOST_CC) $(TEST_CFLAGS) -o $@ $^
@@ -186,6 +193,18 @@ $(TEST_OBJ_DIR)/safe_policy.o: src/safe_policy.c
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 
 $(TEST_OBJ_DIR)/event_log.o: src/event_log.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/crc32.o: src/crc32.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(TEST_OBJ_DIR)/image_integrity.o: src/image_integrity.c
+	@mkdir -p $(TEST_OBJ_DIR)
+	$(HOST_CC) $(TEST_CFLAGS) -DHOST_TEST -c $< -o $@
+
+$(TEST_OBJ_DIR)/image_integrity_stub.o: $(TEST_SUPPORT)/image_integrity_stub.c
 	@mkdir -p $(TEST_OBJ_DIR)
 	$(HOST_CC) $(TEST_CFLAGS) -c $< -o $@
 

@@ -3,6 +3,7 @@
 #include "state_machine.h"
 #include "safe_policy.h"
 #include "event_log.h"
+#include "image_integrity.h"
 #include "log.h"
 #include "uart.h"
 
@@ -67,9 +68,18 @@ void vTaskStateMachine(void *pvParameters)
 
     system_state_init();
 
-    gSystemState = SYSTEM_STATE_NOMINAL;
-    uart_puts(LOG_PREFIX_STATE "NOMINAL\r\n");
-    event_log_record_state_change(SYSTEM_STATE_BOOT, SYSTEM_STATE_NOMINAL, 0u);
+    if (image_integrity_boot_ok()) {
+        gSystemState = SYSTEM_STATE_NOMINAL;
+        uart_puts(LOG_PREFIX_STATE "NOMINAL\r\n");
+        event_log_record_state_change(SYSTEM_STATE_BOOT, SYSTEM_STATE_NOMINAL, 0u);
+    } else {
+        gSystemState = SYSTEM_STATE_DEGRADED;
+        uart_puts(LOG_PREFIX_STATE "DEGRADED\r\n");
+        event_log_record_state_change(SYSTEM_STATE_BOOT,
+                                      SYSTEM_STATE_DEGRADED,
+                                      IMAGE_INTEGRITY_REASON_CODE);
+        safe_policy_on_degraded_enter();
+    }
 
     for (;;) {
         if (xQueueReceive(xStateRequestQueue, &request, pdMS_TO_TICKS(1000)) == pdPASS) {
@@ -82,7 +92,9 @@ void vTaskStateMachine(void *pvParameters)
                 state_machine_log_transition(current);
                 event_log_record_state_change(previous, current, request.reason_code);
 
-                if (current == SYSTEM_STATE_SAFE && previous != SYSTEM_STATE_SAFE) {
+                if (current == SYSTEM_STATE_DEGRADED && previous != SYSTEM_STATE_DEGRADED) {
+                    safe_policy_on_degraded_enter();
+                } else if (current == SYSTEM_STATE_SAFE && previous != SYSTEM_STATE_SAFE) {
                     safe_policy_on_enter();
                 } else if (previous == SYSTEM_STATE_SAFE && current != SYSTEM_STATE_SAFE) {
                     safe_policy_on_exit();

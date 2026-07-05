@@ -15,10 +15,17 @@ void test_safe_policy_watchdog_expected_bits_safe_is_minimal(void)
                              safe_policy_watchdog_expected_bits(SYSTEM_STATE_SAFE));
 }
 
-void test_safe_policy_blocks_fault_inject_in_safe(void)
+void test_safe_policy_blocks_manual_fault_inject_in_safe(void)
 {
-    TEST_ASSERT_FALSE(safe_policy_allows_fault_inject(SYSTEM_STATE_SAFE));
-    TEST_ASSERT_TRUE(safe_policy_allows_fault_inject(SYSTEM_STATE_DEGRADED));
+    TEST_ASSERT_FALSE(safe_policy_allows_manual_fault_inject(SYSTEM_STATE_SAFE));
+    TEST_ASSERT_TRUE(safe_policy_allows_manual_fault_inject(SYSTEM_STATE_DEGRADED));
+}
+
+void test_safe_policy_blocks_auto_fault_inject_outside_nominal(void)
+{
+    TEST_ASSERT_TRUE(safe_policy_allows_auto_fault_inject(SYSTEM_STATE_NOMINAL));
+    TEST_ASSERT_FALSE(safe_policy_allows_auto_fault_inject(SYSTEM_STATE_DEGRADED));
+    TEST_ASSERT_FALSE(safe_policy_allows_auto_fault_inject(SYSTEM_STATE_SAFE));
 }
 
 void test_safe_policy_blocks_background_scrub_in_safe(void)

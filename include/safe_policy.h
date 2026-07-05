@@ -8,11 +8,13 @@
 
 uint32_t safe_policy_watchdog_expected_bits(SystemState_t state);
 
-bool safe_policy_allows_fault_inject(SystemState_t state);
+bool safe_policy_allows_auto_fault_inject(SystemState_t state);
+bool safe_policy_allows_manual_fault_inject(SystemState_t state);
 bool safe_policy_allows_background_scrub(SystemState_t state);
 bool safe_policy_allows_heartbeat_uart(SystemState_t state);
 bool safe_policy_allows_seu_escalation(SystemState_t state);
 
+void safe_policy_on_degraded_enter(void);
 void safe_policy_on_enter(void);
 void safe_policy_on_exit(void);
 

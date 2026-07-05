@@ -84,6 +84,22 @@ void event_log_record_operator(char command_key)
     event_log_store(EVENT_LOG_OPERATOR, (uint8_t) command_key, 0u, 0u);
 }
 
+void event_log_record_image_crc_fail(uint32_t expected, uint32_t computed)
+{
+    EventLogEntry_t *entry = &event_log_entries[event_log_head];
+
+    entry->type = EVENT_LOG_IMAGE_CRC_FAIL;
+    entry->arg_a = 0u;
+    entry->arg_b = 0u;
+    entry->tick = computed;
+    entry->data = expected;
+
+    event_log_head = (uint16_t) ((event_log_head + 1u) % EVENT_LOG_CAPACITY);
+    if (event_log_count_value < EVENT_LOG_CAPACITY) {
+        event_log_count_value++;
+    }
+}
+
 uint16_t event_log_count(void)
 {
     return event_log_count_value;
@@ -172,6 +188,13 @@ static void event_log_dump_entry(const EventLogEntry_t *entry)
             uart_puts("OP key='");
             uart_putc((char) entry->arg_a);
             uart_puts("'");
+            break;
+
+        case EVENT_LOG_IMAGE_CRC_FAIL:
+            uart_puts("IMAGE_CRC_FAIL expected=0x");
+            uart_put_hex(entry->data);
+            uart_puts(" computed=0x");
+            uart_put_hex(entry->tick);
             break;
 
         default:

@@ -17,7 +17,12 @@ uint32_t safe_policy_watchdog_expected_bits(SystemState_t state)
     return WATCHDOG_EXPECTED_BITS;
 }
 
-bool safe_policy_allows_fault_inject(SystemState_t state)
+bool safe_policy_allows_auto_fault_inject(SystemState_t state)
+{
+    return state == SYSTEM_STATE_NOMINAL;
+}
+
+bool safe_policy_allows_manual_fault_inject(SystemState_t state)
 {
     return state != SYSTEM_STATE_SAFE;
 }
@@ -35,6 +40,13 @@ bool safe_policy_allows_heartbeat_uart(SystemState_t state)
 bool safe_policy_allows_seu_escalation(SystemState_t state)
 {
     return state < SYSTEM_STATE_SAFE;
+}
+
+void safe_policy_on_degraded_enter(void)
+{
+    (void) fault_inject_set_enabled(false);
+    uart_puts(LOG_PREFIX_DEGRADED "policy active: auto-inject off ");
+    uart_puts("(background scrub and full watchdog unchanged)\r\n");
 }
 
 void safe_policy_on_enter(void)

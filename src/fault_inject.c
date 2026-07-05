@@ -52,7 +52,7 @@ void vTaskFaultInject(void *pvParameters) {
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(3000));
 
-        if (safe_policy_allows_fault_inject(system_state_get())) {
+        if (safe_policy_allows_auto_fault_inject(system_state_get())) {
             watchdog_kick(WATCHDOG_BIT_FAULTINJECT);
             if (fault_inject_enabled) {
                 inject_random_fault(scrub_area);
