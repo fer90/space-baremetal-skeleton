@@ -197,3 +197,38 @@ Firmware integration: `make qemu-smoke`, `make qemu-soak`.
 `linker.ld` loads at `0x80000000` with separate ELF PHDRs for RX (`.text`/`.rodata`) and RW (`.data`/`.bss`). Critical watchdog code lives in `.text.critical` and is registered with the software MPU at boot.
 
 `scripts/report_memory_map.sh` summarizes flash/RAM use from `kernel.elf` and `kernel.map`; CI runs it after each link.
+
+# Design Decisions
+
+This project started as a learning exercise to embedded and flight software. The goal was not to build a complete flight computer, but to deliberately practice the concepts that matter most in space-oriented firmware: dependability, fault containment, observability, and resource discipline.
+
+1. Graded Degradation with an Explicit SAFE Policy
+Instead of a binary “healthy / failed” model, the system uses a monotonic state machine (BOOT → NOMINAL → DEGRADED → SAFE) with clear recovery paths. Entering SAFE applies a deliberate survival policy: automatic fault injection is forced off, background memory scrubbing is skipped, heartbeat output is suppressed, and the watchdog expects a reduced set of kicks.
+
+Rationale: Real spacecraft rarely fail all at once. A graded model allows the system to continue useful work under partial failure while still having a well-defined, low-risk survival mode. This mirrors real FDIR practice more closely than a simple restart-on-error approach.
+
+2. Software Memory Protection as a Learning and Containment Layer
+A lightweight software MPU tracks protected regions and checks instrumented read, write, and execute accesses. Critical code (the watchdog kick path) lives in a dedicated .text.critical section that is registered as execute-only. Violations are counted and escalate the system state.
+
+Rationale: While real flight processors usually provide hardware PMP or MPU, implementing the checks in software forced a deep understanding of permission models, partial overlaps, and violation handling. It also provides immediate fault containment in the current QEMU-based skeleton.
+
+3. Boot Image Integrity via CRC-32
+The RX load segment is checksummed at startup. A four-byte slot at the end of .rodata is excluded from the hash and patched after linking. A mismatch forces the system into DEGRADED instead of NOMINAL.
+
+Rationale: Boot integrity is fundamental. Detecting a corrupted image early and reacting with a controlled degraded state is far better than silently running potentially compromised code.
+
+4. Flight Recorder for Observability in Degraded States
+A fixed-size in-RAM ring buffer records discrete events (state transitions, watchdog timeouts, SEU corrections, memory-protection violations, SAFE entry/exit, operator commands). The log can be dumped with a single UART command even when normal telemetry is suppressed.
+
+Rationale: When the system enters SAFE mode, most regular output is intentionally quiet. Having a compact event history that survives until the next power cycle (or until overwritten) is extremely useful for post-anomaly analysis.
+
+5. Centralized Task Configuration and Clean IPC
+All application tasks are declared in a single table. Communication happens through bounded FreeRTOS queues and task notifications. The only shared mutable global is the system state, which is owned exclusively by the State Machine task.
+
+Rationale: This design makes the system easier to reason about, test, and extend. It reduces hidden coupling and makes the effect of different system states more predictable.
+
+6. Host Unit Tests + CI from the Beginning
+Seventy-two host-based Unity tests cover the critical modules. CI runs builds (release and debug), tests, static analysis, size checks, and QEMU smoke/soak tests on every push.
+
+Rationale: Even on a personal project, automated testing and continuous integration force cleaner design and give high confidence that changes do not break core behavior. These practices transfer directly to professional environments.
+
